@@ -38,8 +38,33 @@ void init_configuration(configuration_t *the_config) {
  * @return true if parameters are valid, false else
  * This function is provided with its code, you don't have to implement nor modify it.
  */
+bool are_parameters_valid(parameter_t *params, int params_count) {
+    for (int i = 0; i < params_count; i++) {
+        switch (params[i].parameter_type) {
+            case LPARAM_SOURCE:
+            case LPARAM_DESTINATION:
+                if (params[i].parameter_value.str_param[0] == '\0') {
+                    return false;
+                }
+                break;
+            case LPARAM_DATE_SIZE_ONLY:
+            case LPARAM_NO_PARALLEL:
+            case PARAM_VERBOSE:
+            case PARAM_CPU_MULT:
+                if (params[i].parameter_value.int_param < 1 || params[i].parameter_value.int_param > 4) {
+                    return false;
+                }
+                break;
 
-//TODO: check if parameters are valid
+            default:
+                break;
+        }
+    }
+
+    return true;
+}
+
+
 
 
 /*!
@@ -51,7 +76,6 @@ void init_configuration(configuration_t *the_config) {
  */
 int set_configuration(configuration_t *the_config, int argc, char *argv[]){
     int opt;
-    int option_index = 0;
     parameter_t default_parameters[] = {
             {.parameter_type=PARAM_VERBOSE, .parameter_value.flag_param=false},
             {.parameter_type=PARAM_CPU_MULT, .parameter_value.int_param=1},
@@ -74,8 +98,11 @@ int set_configuration(configuration_t *the_config, int argc, char *argv[]){
 
     };
 
-
+    if (are_parameters_valid(default_parameters, default_parameters_count) == false) {
+        return -1;
+    }
     while((opt = getopt_long(argc, argv, "", my_opts, NULL)) != -1) {
+
         switch (opt) {
             case 'v':
                 default_parameters[0].parameter_value.flag_param = true;
