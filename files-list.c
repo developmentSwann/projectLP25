@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #include <stdio.h>
+#include "file-properties.h"
 
 /*!
  * @brief clear_files_list clears a files list
@@ -22,12 +24,54 @@ void clear_files_list(files_list_t *list) {
  *  @brief add_file_entry adds a new file to the files list.
  *  It adds the file in an ordered manner (strcmp) and fills its properties
  *  by calling stat on the file.
- *  Il the file already exists, it does nothing and returns 0
+ *  If the file already exists, it does nothing and returns 0
  *  @param list the list to add the file entry into
  *  @param file_path the full path (from the root of the considered tree) of the file
  *  @return 0 if success, -1 else (out of memory)
  */
 files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
+    files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
+    if (new_entry == NULL) {
+        return NULL;
+    }
+    strcpy(new_entry->path_and_name, file_path);
+    if (get_file_stats(new_entry) == -1) {
+        free(new_entry);
+        return NULL;
+    }
+    if (list->head == NULL) {
+        list->head = new_entry;
+        list->tail = new_entry;
+        new_entry->prev = NULL;
+        new_entry->next = NULL;
+        return new_entry;
+    }
+    files_list_entry_t *cursor = list->head;
+    while (cursor) {
+        if (strcmp(cursor->path_and_name, file_path) == 0) {
+            free(new_entry);
+            return cursor;
+        }
+        if (strcmp(cursor->path_and_name, file_path) > 0) {
+            if (cursor->prev) {
+                cursor->prev->next = new_entry;
+            } else {
+                list->head = new_entry;
+            }
+            new_entry->prev = cursor->prev;
+            new_entry->next = cursor;
+            cursor->prev = new_entry;
+            return new_entry;
+        }
+        if (cursor->next == NULL) {
+            cursor->next = new_entry;
+            new_entry->prev = cursor;
+            list->tail = new_entry;
+            return new_entry;
+        }
+        cursor = cursor->next;
+    }
+    return NULL;
 
 }
 
@@ -40,6 +84,23 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
  * @return 0 in case of success, -1 else
  */
 int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
+    if (entry == NULL || list == NULL) {
+        return -1;
+    }
+    if (list->head == NULL) {
+        list->head = entry;
+        list->tail = entry;
+        entry->prev = NULL;
+        entry->next = NULL;
+        return 0;
+    }
+    files_list_entry_t *cursor = list->tail;
+    cursor->next = entry;
+    entry->prev = cursor;
+    entry->next = NULL;
+    list->tail = entry;
+    return 0;
+
 }
 
 /*!
@@ -52,6 +113,20 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
  *  @return a pointer to the element found, NULL if none were found.
  */
 files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size_t start_of_src, size_t start_of_dest) {
+    if (list == NULL || file_path == NULL) {
+        return NULL;
+    }
+    files_list_entry_t *cursor = list->head;
+    while (cursor) {
+        if (strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest) == 0) {
+            return cursor;
+        }
+        if (strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest) > 0) {
+            return NULL;
+        }
+        cursor = cursor->next;
+    }
+    return NULL;
 }
 
 /*!
