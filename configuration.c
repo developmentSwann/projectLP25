@@ -25,7 +25,22 @@ void display_help(char *my_name) {
  * @param the_config is a pointer to the configuration to be initialized
  */
 void init_configuration(configuration_t *the_config) {
+    the_config->processes_count = 1;
+    the_config->is_parallel = true;
+    the_config->uses_md5 = true;
+    the_config->source[0] = '\0';
+    the_config->destination[0] = '\0';
 }
+
+/*!
+ * @brief are_parameters_valid tests if the parameters are valid
+ * @param parameter
+ * @return true if parameters are valid, false else
+ * This function is provided with its code, you don't have to implement nor modify it.
+ */
+
+//TODO: check if parameters are valid
+
 
 /*!
  * @brief set_configuration updates a configuration based on options and parameters passed to the program CLI
@@ -34,5 +49,60 @@ void init_configuration(configuration_t *the_config) {
  * @param argv is an array of strings with the program parameters
  * @return -1 if configuration cannot succeed, 0 when ok
  */
-int set_configuration(configuration_t *the_config, int argc, char *argv[]) {
+int set_configuration(configuration_t *the_config, int argc, char *argv[]){
+    int opt;
+    int option_index = 0;
+    parameter_t default_parameters[] = {
+            {.parameter_type=PARAM_VERBOSE, .parameter_value.flag_param=false},
+            {.parameter_type=PARAM_CPU_MULT, .parameter_value.int_param=1},
+            {.parameter_type=LPARAM_DATE_SIZE_ONLY, .parameter_value.flag_param=false},
+            {.parameter_type=LPARAM_NO_PARALLEL, .parameter_value.flag_param=false},
+            {.parameter_type=LPARAM_SOURCE, .parameter_value.str_param=""},
+            {.parameter_type=LPARAM_DESTINATION, .parameter_value.str_param=""},
+
+    };
+    int default_parameters_count = sizeof(default_parameters) / sizeof(parameter_t);
+
+    struct option my_opts[] = {
+            {.name="verbose",.has_arg=0,.flag=0,.val='v'},
+            {.name="cpu-mult",.has_arg=1,.flag=0,.val='m'},
+            {.name="date-size-only",.has_arg=0,.flag=0,.val='t'},
+            {.name="no-parallel",.has_arg=0,.flag=0,.val='p'},
+            {.name="source",.has_arg=1,.flag=0,.val='s'},
+            {.name="destination",.has_arg=1,.flag=0,.val='d'},
+            {.name=NULL,.has_arg=0,.flag=0,.val=0},
+
+    };
+
+
+    while((opt = getopt_long(argc, argv, "", my_opts, NULL)) != -1) {
+        switch (opt) {
+            case 'v':
+                default_parameters[0].parameter_value.flag_param = true;
+                break;
+
+            case 'm':
+                default_parameters[1].parameter_value.int_param = strtoul(optarg, NULL, 10); // TODO: check value
+                break;
+
+            case 't':
+                default_parameters[2].parameter_value.flag_param = true;
+                break;
+
+            case 'p':
+                default_parameters[3].parameter_value.flag_param = true;
+                break;
+
+            case 's':
+                strcpy(default_parameters[4].parameter_value.str_param, optarg);
+                break;
+
+            case 'd':
+                strcpy(default_parameters[5].parameter_value.str_param, optarg);
+                break;
+        }
+    }
+
+    return 0;
+
 }
