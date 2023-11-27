@@ -2,8 +2,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "file-properties.h"
 #include <stdio.h>
+
 
 /*!
  * @brief clear_files_list clears a files list
@@ -28,6 +29,46 @@ void clear_files_list(files_list_t *list) {
  *  @return 0 if success, -1 else (out of memory)
  */
 files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
+    files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
+    if (new_entry == NULL) {
+        return NULL;
+    }
+    strcpy(new_entry->path_and_name, file_path);
+    if (get_file_stats(new_entry) == -1) {
+        free(new_entry);
+        return NULL;
+    }
+    if (list->head == NULL) {
+        list->head = new_entry;
+        list->tail = new_entry;
+        new_entry->next = NULL;
+        new_entry->prev = NULL;
+        return new_entry;
+    }
+    files_list_entry_t *cursor = list->head;
+    while (cursor) {
+        if (strcmp(cursor->path_and_name, file_path) == 0) {
+            free(new_entry);
+            return NULL;
+        }
+        if (strcmp(cursor->path_and_name, file_path) > 0) {
+            if (cursor->prev) {
+                cursor->prev->next = new_entry;
+            } else {
+                list->head = new_entry;
+            }
+            new_entry->prev = cursor->prev;
+            new_entry->next = cursor;
+            cursor->prev = new_entry;
+            return new_entry;
+        }
+        cursor = cursor->next;
+    }
+    list->tail->next = new_entry;
+    new_entry->prev = list->tail;
+    new_entry->next = NULL;
+    list->tail = new_entry;
+    return new_entry;
 
 }
 
@@ -40,6 +81,23 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
  * @return 0 in case of success, -1 else
  */
 int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
+    if (entry == NULL) {
+        return -1;
+    }
+    else if (list->head == NULL) {
+        list->head = entry;
+        list->tail = entry;
+        entry->next = NULL;
+        entry->prev = NULL;
+        return 0;
+    }
+    else {
+        list->tail->next = entry;
+        entry->prev = list->tail;
+        entry->next = NULL;
+        list->tail = entry;
+        return 0;
+    }
 }
 
 /*!
@@ -52,6 +110,19 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
  *  @return a pointer to the element found, NULL if none were found.
  */
 files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size_t start_of_src, size_t start_of_dest) {
+    if(list == NULL || file_path == NULL) {
+        return NULL;
+    }
+    files_list_entry_t *cursor = list->head;
+    while (cursor) {
+        if (strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest) == 0) {
+            return cursor;
+        }
+        if (strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest) > 0) {
+            return NULL;
+        }
+        cursor = cursor->next;
+    }
 }
 
 /*!
