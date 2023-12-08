@@ -76,6 +76,8 @@ void make_list(files_list_t *list, char *target) {
  * @return a pointer to a dir, NULL if it cannot be opened
  */
 DIR *open_dir(char *path) {
+    DIR *dir = opendir(path);
+    return dir;
 }
 
 /*!
@@ -85,4 +87,6 @@ DIR *open_dir(char *path) {
  * Relevant entries are all regular files and dir, except . and ..
  */
 struct dirent *get_next_entry(DIR *dir) {
+    struct dirent *entry = readdir(dir);
+    return entry;
 }

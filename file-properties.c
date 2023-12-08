@@ -56,6 +56,7 @@ int get_file_stats(files_list_entry_t *entry) {
  */
 int compute_file_md5(files_list_entry_t *entry) {
 
+
 }
 
 /*!
