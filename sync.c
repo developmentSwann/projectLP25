@@ -22,6 +22,7 @@
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
 
+
 }
 
 /*!

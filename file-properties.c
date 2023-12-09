@@ -57,45 +57,54 @@ int get_file_stats(files_list_entry_t *entry) {
  * @return -1 in case of error, 0 else
  * Use libcrypto functions from openssl/evp.h
  */
+
 int compute_file_md5(files_list_entry_t *entry) {
-    int fd = open(entry->path_and_name, O_RDONLY);
-    if (fd < 0) {
-        perror("open");
+    unsigned char digest[16];
+    char mdString[33];
+    int i;
+    FILE *inFile = fopen(entry->path_and_name, "rb");
+    if (!inFile) {
         return -1;
     }
+
     EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-    if (mdctx == NULL) {
+    if(mdctx == NULL) {
+        fclose(inFile);
         return -1;
     }
-    unsigned char md_value[EVP_MAX_MD_SIZE];
-    unsigned int md_len;
-    if (EVP_DigestInit_ex(mdctx, EVP_md5(), NULL) != 1) {
-        perror("EVP_DigestInit_ex");
+
+    if(1 != EVP_DigestInit_ex(mdctx, EVP_md5(), NULL)) {
+        EVP_MD_CTX_free(mdctx);
+        fclose(inFile);
         return -1;
     }
-    char buffer[4096];
-    ssize_t read_bytes;
-    while ((read_bytes = read(fd, buffer, 4096)) > 0) {
-        if (EVP_DigestUpdate(mdctx, buffer, read_bytes) != 1) {
-            perror("EVP_DigestUpdate");
+
+    unsigned char data[1024];
+    int bytes;
+    while((bytes = fread(data, 1, 1024, inFile)) != 0) {
+        if(1 != EVP_DigestUpdate(mdctx, data, bytes)) {
+            EVP_MD_CTX_free(mdctx);
+            fclose(inFile);
             return -1;
         }
     }
-    if (read_bytes < 0) {
-        perror("read");
+
+    if(1 != EVP_DigestFinal_ex(mdctx, digest, NULL)) {
+        EVP_MD_CTX_free(mdctx);
+        fclose(inFile);
         return -1;
     }
-    if (EVP_DigestFinal_ex(mdctx, md_value, &md_len) != 1) {
-        perror("EVP_DigestFinal_ex");
-        return -1;
+
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&mdString[i*2], "%02x", (unsigned int)digest[i]);
     }
+
+    strcpy(entry->md5sum, mdString);
+
     EVP_MD_CTX_free(mdctx);
-    close(fd);
-    memcpy(entry->md5sum, md_value, md_len);
+    fclose(inFile);
+
     return 0;
-
-
-
 }
 
 /*!
