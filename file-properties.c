@@ -1,5 +1,5 @@
 #include <file-properties.h>
-
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <openssl/evp.h>
@@ -57,6 +57,7 @@ int get_file_stats(files_list_entry_t *entry) {
 int compute_file_md5(files_list_entry_t *entry) {
 
 
+
 }
 
 /*!
@@ -80,10 +81,16 @@ bool directory_exists(char *path_to_dir) {
  * Hint: try to open a file in write mode in the target directory.
  */
 bool is_directory_writable(char *path_to_dir) {
-    FILE *fd = fopen(path_to_dir, "w");
-    if (fd == NULL) {
+    char *test_file = "/.test";
+    char *test_path = malloc(strlen(path_to_dir) + strlen(test_file) + 1);
+    strcpy(test_path, path_to_dir);
+    strcat(test_path, test_file);
+    int fd = open(test_path, O_CREAT | O_WRONLY, 0666);
+    if (fd < 0) {
         return false;
     }
-    fclose(fd);
+    close(fd);
+    unlink(test_path);
+    free(test_path);
     return true;
 }

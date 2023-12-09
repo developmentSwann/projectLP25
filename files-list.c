@@ -123,6 +123,7 @@ files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size
         }
         cursor = cursor->next;
     }
+    return NULL;
 }
 
 /*!

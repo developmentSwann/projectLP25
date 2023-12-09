@@ -20,6 +20,7 @@
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
 
+
 }
 
 /*!
@@ -38,6 +39,7 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  * @param target_path is the path whose files to list
  */
 void make_files_list(files_list_t *list, char *target_path) {
+
 }
 
 /*!
@@ -75,7 +77,6 @@ void make_list(files_list_t *list, char *target) {
  * @return a pointer to a dir, NULL if it cannot be opened
  */
 DIR *open_dir(char *path){
-
 
 }
 
