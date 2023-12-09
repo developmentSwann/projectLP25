@@ -95,7 +95,7 @@ int compute_file_md5(files_list_entry_t *entry) {
         return -1;
     }
 
-    for(i = 0; i < MD5_DIGEST_LENGTH; i++) {
+    for(i = 0; i < 16; i++) {
         sprintf(&mdString[i*2], "%02x", (unsigned int)digest[i]);
     }
 
