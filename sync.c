@@ -31,7 +31,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         make_files_list(src_list, the_config->source);
         make_files_list(dst_list, the_config->destination);
     }
-
+    printf("Cursor : %s\n", src_list->head->path_and_name);
     files_list_entry_t *src_cursor = src_list->head;
     while (src_cursor) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
@@ -82,9 +82,10 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  * @param list is a pointer to the list that will be built
  * @param target_path is the path whose files to list
  */
-void make_files_list(files_list_t *list, char *target_path) {
+void  make_files_list(files_list_t *list, char *target_path) {
     make_list(list, target_path);
     files_list_entry_t *cursor = list->head;
+
     while (cursor) {
         if (get_file_stats(cursor) < 0) {
             printf("Impossible de recuperer les informations du fichier %s\n", cursor->path_and_name);
@@ -150,32 +151,27 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
 void make_list(files_list_t *list, char *target) {
     DIR *dir = open_dir(target);
     if (dir == NULL) {
+        printf("Impossible d'ouvrir le dossier %s\n", target);
         return;
     }
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-            continue;
+    struct dirent *entry = get_next_entry(dir);
+    while (entry) {
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            char *path = malloc(sizeof(char) * (strlen(target) + strlen(entry->d_name) + 2));
+            strcpy(path, target);
+            strcat(path, "/");
+            strcat(path, entry->d_name);
+            files_list_entry_t *list_entry = add_file_entry(list, path);
+            if (list_entry == NULL) {
+                printf("Impossible d'ajouter le fichier %s a la liste\n", path);
+            }
+            if (entry->d_type == DT_DIR) {
+                make_list(list, path);
+            }
+            free(path);
         }
-
-        char path[1024];
-        snprintf(path, sizeof(path), "%s/%s", target, entry->d_name);
-
-        struct stat st;
-        if (stat(path, &st) == -1) {
-            continue;
-        }
-
-        if (S_ISDIR(st.st_mode)) {
-            make_list(list, path);
-        } else {
-            files_list_entry_t *file_entry = malloc(sizeof(files_list_entry_t));
-            strcpy(file_entry->path_and_name, path);
-            add_entry_to_tail(list, file_entry);
-        }
+        entry = get_next_entry(dir);
     }
-
     closedir(dir);
 }
 
