@@ -36,7 +36,6 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     }
     //On affiche les listes
     printf("Liste source :\n");
-    files_list_entry_t *cursor = src_list->head;
 
     printf("Liste destination :\n");
     display_files_list(dst_list);
