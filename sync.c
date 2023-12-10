@@ -124,11 +124,19 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
     //On cree le dossier
     char *path = malloc(sizeof(char) * 4096);
-    concat_path(path, the_config->destination, source_entry->path_and_name);
+    //On cree le chemin du fichier (concat path : prefix = chemin de destination, suffix = nom de l'entry source sans le chemin)
+    char *prefix = the_config->destination;
+    //On isole le suffixe du chemin (uniquement name de path_and_name)
+    char *suffix = source_entry->path_and_name + strlen(the_config->source);
+    //On concatene le prefixe et le suffixe
+    concat_path(path, prefix, suffix);
+    printf("Path : %s\n", path);
+
+
 
     if (source_entry->entry_type == DOSSIER) {
         mkdir(path, source_entry->mode);
-    }else{
+    }else {
         int fd = open(path, O_CREAT | O_WRONLY, source_entry->mode);
         if (fd == -1) {
             printf("Impossible de creer le fichier %s\n", path);
@@ -155,8 +163,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         realpath(path, absolute_path);
         utimensat(0, absolute_path, times, 0);
     }
-    return
-
+    return;
 }
 
 /*!
