@@ -100,7 +100,6 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
     entry->next = NULL;
     list->tail = entry;
 
-
     return 0;
 }
 
