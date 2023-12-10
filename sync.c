@@ -198,9 +198,15 @@ void make_list(files_list_t *list, char *target) {
                 if (S_ISDIR(stat_buf.st_mode)) {
                     printf("C'est un dossier\n");
                     make_list(list, path);
+                    free(path);
+
                 } else {
+                    files_list_entry_t *rst = malloc(sizeof(files_list_entry_t));
+                    strcpy(rst->path_and_name, path);
                     printf("C'est un fichier\n");
-                    add_entry_to_tail(list, path);
+                    add_entry_to_tail(list, rst);
+                    free(path);
+
                 }
 
                 printf("Ajout de %s reussi\n", entry->d_name);
@@ -209,8 +215,9 @@ void make_list(files_list_t *list, char *target) {
             // Obtenir la prochaine entrée
             entry = get_next_entry(dir);
             printf("Prochaine entree : %s\n", entry->d_name);
-            if (entry == NULL || strcmp(entry->d_name, "..") == 0) {
+            if (strcmp(entry->d_name, "..") == 0) {
                 printf("Fin du dossier\n");
+                free(entry);
                 break;
             }
 
