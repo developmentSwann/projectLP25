@@ -43,11 +43,20 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     files_list_entry_t *src_cursor = src_list->head;
     while (src_cursor) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
+        printf("Fichier source : %s\n", src_cursor->path_and_name);
+        printf("Fichier destination : %s\n", dst_entry->path_and_name);
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
+            printf("Fichier different\n");
+            //On ajoute le fichier a la liste des fichiers a copier
             add_entry_to_tail(diff_list, src_cursor);
         }
+
         src_cursor = src_cursor->next;
     }
+    //On affiche la liste des fichiers a copier
+    printf("Liste des fichiers a copier :\n");
+    display_files_list(diff_list);
+    //On copie les fichiers
     files_list_entry_t *diff_cursor = diff_list->head;
     while (diff_cursor) {
         copy_entry_to_destination(diff_cursor, the_config);
@@ -186,21 +195,17 @@ void make_list(files_list_t *list, char *target) {
                 }
 
                 if (entry->d_type == 4) {
-                    printf("C'est un dossier\n");
                     // Appeler make_list sur le dossier
                     make_list(list,concat_path(path->path_and_name, target, entry->d_name));
                 } else {
-                    printf("C'est un fichier\n");
                     add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
 
                 }
 
-                printf("Ajout de %s reussi\n", entry->d_name);
             }
 
             // Obtenir la prochaine entrée
             entry = get_next_entry(dir);
-            printf("Prochaine entree : %s\n", entry->d_name);
             if (strcmp(entry->d_name, "..") == 0) {
                 printf("Fin du dossier\n");
                 // Fermer le dossier

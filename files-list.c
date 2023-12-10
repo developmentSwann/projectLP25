@@ -101,7 +101,6 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
     }
 
 
-    printf("Added entry %s\n", entry->path_and_name);
 
     return 0;
 }
