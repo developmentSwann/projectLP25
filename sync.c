@@ -13,6 +13,7 @@
 #include "stdlib.h"
 #include <stdio.h>
 
+
 /*!
  * @brief synchronize is the main function for synchronization
  * It will build the lists (source and destination), then make a third list with differences, and apply differences to the destination
@@ -165,14 +166,16 @@ void make_list(files_list_t *list, char *target) {
             if (list_entry == NULL) {
                 printf("Impossible d'ajouter le fichier %s a la liste\n", path);
             }
-            if (entry->d_type == DT_DIR) {
+            struct stat path_stat;
+            stat(path, &path_stat);
+            if (S_ISDIR(path_stat.st_mode)) {
                 make_list(list, path);
             }
+
             free(path);
         }
         entry = get_next_entry(dir);
     }
-    closedir(dir);
 }
 
 /*!
