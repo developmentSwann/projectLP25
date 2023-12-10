@@ -10,7 +10,7 @@
 #include <sys/sendfile.h>
 #include <unistd.h>
 #include <sys/msg.h>
-
+#include "stdlib.h"
 #include <stdio.h>
 
 /*!
@@ -21,6 +21,24 @@
  * @param p_context is a pointer to the processes context
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
+    files_list_t src_list;
+    files_list_t dst_list;
+    files_list_t diff_list;
+    init_files_list(&src_list);
+    init_files_list(&dst_list);
+    init_files_list(&diff_list);
+    if (the_config->is_parallel) {
+        make_files_lists_parallel(&src_list, &dst_list, the_config, p_context->message_queue_id);
+    } else {
+        make_files_list(&src_list, the_config->source);
+        make_files_list(&dst_list, the_config->destination);
+    }
+    make_diff_list(&src_list, &dst_list, &diff_list, the_config->uses_md5);
+    apply_diff_list(&diff_list, the_config);
+    clear_files_list(&src_list);
+    clear_files_list(&dst_list);
+    clear_files_list(&diff_list);
+
 }
 
 /*!
@@ -31,6 +49,22 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
  * @return true if both files are not equal, false else
  */
 bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
+    if (lhd->entry_type != rhd->entry_type) {
+        return true;
+    }
+    if (lhd->entry_type == DOSSIER) {
+        return false;
+    }
+    if (lhd->size != rhd->size) {
+        return true;
+    }
+    if (lhd->mtime.tv_sec != rhd->mtime.tv_sec) {
+        return true;
+    }
+    if (has_md5  && strcmp(lhd->md5sum, rhd->md5sum) != 0) {
+        return true;
+    }
+    return false;
 }
 
 /*!
@@ -39,6 +73,7 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  * @param target_path is the path whose files to list
  */
 void make_files_list(files_list_t *list, char *target_path) {
+    make_list(list, target_path);
 }
 
 /*!
@@ -49,6 +84,7 @@ void make_files_list(files_list_t *list, char *target_path) {
  * @param msg_queue is the id of the MQ used for communication
  */
 void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, configuration_t *the_config, int msg_queue) {
+
 }
 
 /*!
@@ -58,6 +94,33 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
+    int source_fd, dest_fd;
+    struct stat stat_buf;
+    off_t offset = 0; // Definie dans sendfile.h
+    source_fd = open(source_entry->path_and_name, O_RDONLY);
+    if (source_fd == -1) {
+        perror("Impossible d'ouvrir le fichier source");
+        return;
+    }
+    if (fstat(source_fd, &stat_buf) == -1) {
+        perror("Impossible de lire les informations du fichier source");
+        close(source_fd);
+        return;
+    }
+    dest_fd = open(the_config->destination, O_WRONLY , stat_buf.st_mode);
+    if (dest_fd == -1) {
+        perror("Impossible d'ouvrir le fichier de destination");
+        close(source_fd);
+        return;
+    }
+    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) { // Defini dans sendfile.h
+        perror("Impossible de copier le fichier");
+    }
+    else {
+        printf("Fichier bien copie.\n");
+    }
+    close(source_fd);
+    close(dest_fd);
 }
 
 /*!
@@ -68,6 +131,35 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
  * @param target is the target dir whose content must be listed
  */
 void make_list(files_list_t *list, char *target) {
+    DIR *dir = open_dir(target);
+    if (dir == NULL) {
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/%s", target, entry->d_name);
+
+        struct stat st;
+        if (stat(path, &st) == -1) {
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode)) {
+            make_list(list, path);
+        } else {
+            files_list_entry_t *file_entry = malloc(sizeof(files_list_entry_t));
+            strcpy(file_entry->path_and_name, path);
+            add_entry_to_tail(list, file_entry);
+        }
+    }
+
+    closedir(dir);
 }
 
 /*!
