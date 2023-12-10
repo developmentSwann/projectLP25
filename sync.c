@@ -123,46 +123,23 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
     //On cree le dossier
-    char *path = malloc(sizeof(char) * 4096);
-    //On cree le chemin du fichier (concat path : prefix = chemin de destination, suffix = nom de l'entry source sans le chemin)
-    char *prefix = the_config->destination;
-    //On isole le suffixe du chemin (uniquement name de path_and_name)
-    char *suffix = source_entry->path_and_name + strlen(the_config->source);
-    //On concatene le prefixe et le suffixe
-    concat_path(path, prefix, suffix);
-    printf("Path : %s\n", path);
-
-
-
     if (source_entry->entry_type == DOSSIER) {
-        mkdir(path, source_entry->mode);
-    }else {
-        int fd = open(path, O_CREAT | O_WRONLY, source_entry->mode);
-        if (fd == -1) {
-            printf("Impossible de creer le fichier %s\n", path);
-            return;
-        }
-        //On copie le fichier
-        int fd_src = open(source_entry->path_and_name, O_RDONLY);
-        if (fd_src == -1) {
-            printf("Impossible d'ouvrir le fichier source %s\n", source_entry->path_and_name);
-            return;
-        }
-        struct stat stat_src;
-        stat(source_entry->path_and_name, &stat_src);
-        sendfile(fd, fd_src, NULL, stat_src.st_size);
-
-        close(fd);
-        close(fd_src);
-        chmod(path, source_entry->mode);
-
-        struct timespec times[2];
-        times[0] = source_entry->mtime;
-        times[1] = source_entry->mtime;
-        char absolute_path[260];
-        realpath(path, absolute_path);
-        utimensat(0, absolute_path, times, 0);
+        mkdir(concat_path(NULL, the_config->destination, source_entry->path_and_name), source_entry->mode);
+        return;
     }
+    //On cree le fichier
+    int fd_src = open(source_entry->path_and_name, O_RDONLY);
+    int fd_dst = open(concat_path(NULL, the_config->destination, source_entry->path_and_name), O_WRONLY | O_CREAT, source_entry->mode);
+    //On copie le fichier
+    sendfile(fd_dst, fd_src, NULL, source_entry->size);
+    //On ferme les fichiers
+    close(fd_src);
+    close(fd_dst);
+
+
+    //On modifie les droits
+    chmod(concat_path(NULL, the_config->destination, source_entry->path_and_name), source_entry->mode);
+
     return;
 }
 
