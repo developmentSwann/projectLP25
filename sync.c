@@ -150,6 +150,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         return;
     }
     // On cree le fichier de destination
+    printf("Chemin de destination : %s\n", concat_path(source_entry->path_and_name, the_config->destination, source_entry->path_and_name)
     dest_fd = open(concat_path(source_entry->path_and_name, the_config->destination, source_entry->path_and_name), O_WRONLY | O_CREAT, stat_buf.st_mode);
     if (dest_fd == -1) {
         perror("Impossible de creer le fichier de destination");
