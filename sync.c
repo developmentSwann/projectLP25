@@ -166,14 +166,6 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     // On ferme les fichiers
     close(source_fd);
     close(dest_fd);
-    // On met a jour les dates de modification
-    struct timespec times[2];
-    times[0] = stat_buf.st_atim;
-    times[1] = stat_buf.st_mtim;
-    if (utimensat(AT_FDCWD, concat_path(source_entry->path_and_name, the_config->destination, source_entry->path_and_name), times, 0) == -1) {
-        perror("Impossible de mettre a jour les dates de modification");
-        return;
-    }
     return;
 }
 
