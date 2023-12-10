@@ -149,9 +149,13 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         close(source_fd);
         return;
     }
-    // On cree le fichier de destination
-    printf("Chemin de destination : %s\n",concat_path(source_entry->path_and_name, source_entry->path_and_name, the_config->destination));
-    dest_fd = open(concat_path(source_entry->path_and_name, source_entry->path_and_name, the_config->destination), O_WRONLY | O_CREAT, stat_buf.st_mode);
+    // On cree le fichier de destination (nom de fichier destination = chemin de destination + nom de fichier source)
+    printf("Chemin de destination : %s\n", the_config->destination);
+    printf("Nom de fichier source : %s\n", source_entry->path_and_name);
+    //Récupérer juste le nom du fichier source
+    char *file_name = strrchr(source_entry->path_and_name, '/');
+    printf("Nom de fichier source : %s\n", file_name);
+    char *dest_path = concat_path(NULL, the_config->destination, file_name);
     if (dest_fd == -1) {
         perror("Impossible de creer le fichier de destination");
         close(source_fd);
