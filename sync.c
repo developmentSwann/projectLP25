@@ -36,7 +36,6 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     }
     //On affiche les listes
     printf("Liste source :\n");
-    display_files_list(src_list);
 
     printf("Liste destination :\n");
     display_files_list(dst_list);
@@ -44,7 +43,9 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     files_list_entry_t *src_cursor = src_list->head;
     while (src_cursor) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
-
+        printf("Liste source :\n");
+        display_files_list(src_list);
+        printf("/!/ Type : %d\n", src_cursor->entry_type);
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
             //On ajoute le fichier a la liste des fichiers a copier
@@ -150,11 +151,12 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         struct timespec times[2];
         times[0] = source_entry->mtime;
         times[1] = source_entry->mtime;
-        char absolute_path[260];
+        char absolute_path[PATH_MAX];
         realpath(path, absolute_path);
         utimensat(0, absolute_path, times, 0);
     }
-return;
+    return
+
 }
 
 /*!
@@ -172,46 +174,32 @@ void make_list(files_list_t *list, char *target) {
     }
     files_list_entry_t *currentEntry = list->head;
     struct dirent *entry = get_next_entry(dir);
-    files_list_entry_t *newEntry = malloc(sizeof(files_list_entry_t));
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
+            // Allouer dynamiquement de la mémoire pour le chemin
             size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
             char *path = malloc(sizeof(char) * path_size);
             if (path == NULL) {
                 printf("Failed to allocate memory for path\n");
                 return;
             }
+            //Check si c'est un dossier
             struct stat path_stat;
             stat(concat_path(path, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
             if (is_directory) {
-                strcpy(newEntry->path_and_name, concat_path(path, target, entry->d_name));
-                newEntry->entry_type = DOSSIER;
-                newEntry->mode = path_stat.st_mode;
-                newEntry->mtime.tv_sec = path_stat.st_mtime;
-                newEntry->size = path_stat.st_size;
-                add_entry_to_tail(list, newEntry);
-
+                //On ajoute le dossier a la liste
+                add_entry_to_tail(list, concat_path(path, target, entry->d_name));
+                //On appelle la fonction recursivement
                 make_list(list, concat_path(path, target, entry->d_name));
-                closedir(dir);
-                return;
-
 
             } else {
-                strcpy(newEntry->path_and_name, concat_path(path, target, entry->d_name));
-                newEntry->entry_type = FICHIER;
-                newEntry->mode = path_stat.st_mode;
-                newEntry->mtime.tv_sec = path_stat.st_mtime;
-                newEntry->size = path_stat.st_size;
-                add_entry_to_tail(list, newEntry);
+                add_entry_to_tail(list, path);
             }
         }
-        //Affichage de la liste
-        printf("Liste :\n");
-        display_files_list(list);
-
+        // Obtenir la prochaine entrée
         entry = get_next_entry(dir);
         if (strcmp(entry->d_name, "..") == 0) {
             printf("Fin du dossier\n");
