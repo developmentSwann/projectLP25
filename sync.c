@@ -158,9 +158,12 @@ void make_list(files_list_t *list, char *target) {
     }
     files_list_entry_t *currentEntry = list->head;
     struct dirent *entry = get_next_entry(dir);
+    files_list_entry_t *addEntryToTail = NULL;
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
+
         printf("Entry : %s\n", entry->d_name);
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+
             printf("Ajout de %s\n", entry->d_name);
             // Allouer dynamiquement de la mémoire pour le chemin
             size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
@@ -174,13 +177,30 @@ void make_list(files_list_t *list, char *target) {
             stat(concat_path(path, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
             if (is_directory) {
-                //On ajoute le dossier a la liste
-                add_entry_to_tail(list, concat_path(path, target, entry->d_name));
-                //On appelle la fonction recursivement
-                make_list(list, concat_path(path, target, entry->d_name));
+                //On récupère le dossier pour ensuite le rajouter à la liste
+                 addEntryToTail->entry_type = DOSSIER;
+                    addEntryToTail->mode = path_stat.st_mode;
+                    addEntryToTail->mtime = path_stat.st_mtim;
+                    addEntryToTail->size = path_stat.st_size;
+                    strcpy(addEntryToTail->path_and_name, concat_path(path, target, entry->d_name));
+                    addEntryToTail->next = NULL;
+                    addEntryToTail->prev = NULL;
+                //On ajoute le dossier à la liste
+                add_entry_to_tail(list, addEntryToTail);
+
+
 
             } else {
-                add_entry_to_tail(list, path);
+                //On récupère le fichier pour ensuite le rajouter à la liste
+                addEntryToTail->entry_type = FICHIER;
+                    addEntryToTail->mode = path_stat.st_mode;
+                    addEntryToTail->mtime = path_stat.st_mtim;
+                    addEntryToTail->size = path_stat.st_size;
+                    strcpy(addEntryToTail->path_and_name, concat_path(path, target, entry->d_name));
+                    addEntryToTail->next = NULL;
+                    addEntryToTail->prev = NULL;
+                //On ajoute le fichier à la liste
+                add_entry_to_tail(list, addEntryToTail);
             }
         }
         // Obtenir la prochaine entrée
