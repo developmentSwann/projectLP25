@@ -90,15 +90,19 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
     if (list->head == NULL) {
         list->head = entry;
         list->tail = entry;
-        entry->prev = NULL;
-        entry->next = NULL;
-        return 0;
+        list->head->prev = NULL;
+        list->head->next = NULL;
+
+    }else {
+        files_list_entry_t *temp = list->tail->next;
+        list->tail->next = entry;
+        list->tail = entry;
+        list->tail->prev = temp;
+        list->tail->next = NULL;
+
     }
-    files_list_entry_t *cursor = list->tail;
-    cursor->next = entry;
-    entry->prev = cursor;
-    entry->next = NULL;
-    list->tail = entry;
+
+
 
     return 0;
 }

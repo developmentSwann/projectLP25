@@ -11,13 +11,25 @@
  * @return a pointer to the resulting path, NULL when concatenation failed
  */
 char *concat_path(char *result, char *prefix, char *suffix) {
-    if (strlen(prefix) + strlen(suffix) + 2 > PATH_SIZE) {
+    // String final = prefix + "/" + suffixFinal
+    // suffixFinal = différence entre suffix et prefix
+    // On vérifie que le résultat ne dépasse pas PATH_SIZE
+    if (strlen(prefix) + strlen(suffix) + 1 > PATH_SIZE) {
         return NULL;
     }
-    strcpy(result, prefix);
-    if (prefix[strlen(prefix) - 1] != '/') {
+    char *cursor = prefix;
+    char *suffixFinal;
+    while (*cursor == *suffix) {
+        cursor++;
+        suffix++;
+    }
+    suffixFinal = suffix;
+    if (*(cursor - 1) != '/') {
         strcat(result, "/");
     }
-    strcat(result, suffix);
+    strcat(result, suffixFinal);
     return result;
+
+
+
 }
