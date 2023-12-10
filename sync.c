@@ -175,30 +175,15 @@ void make_list(files_list_t *list, char *target) {
 
 
                 files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
-                strncpy(path->path_and_name, target, path_size);
-                strncat(path->path_and_name, "/", path_size - strlen(path->path_and_name));
-                strncat(path->path_and_name, entry->d_name, path_size - strlen(path->path_and_name));
-
                 if (path == NULL) {
                     printf("Failed to allocate memory for path\n");
                     return;
                 }
 
-                // Construire path
-                concat_path(path->path_and_name, target, entry->d_name);
-
-
-                // Vérifier si c'est un dossier
-                struct stat stat_buf;
-                if (stat(path->path_and_name, &stat_buf) < 0) {
-                    perror("stat");
-                    return;
-                }
-                if (S_ISDIR(stat_buf.st_mode)) {
+                if (entry->d_type == 4) {
                     printf("C'est un dossier\n");
                     // Appeler make_list sur le dossier
-                    make_list(list, path->path_and_name);
-
+                    make_list(list,concat_path(path->path_and_name, target, entry->d_name));
                 } else {
                     printf("C'est un fichier\n");
                     add_entry_to_tail(list, path);

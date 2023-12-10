@@ -27,7 +27,7 @@ void clear_files_list(files_list_t *list) {
  *  If the file already exists, it does nothing and returns 0
  *  @param list the list to add the file entry into
  *  @param file_path the full path (from the root of the considered tree) of the file
- *  @return 0 if success, -1 else (out of memory)
+ *  @return a pointer to the added element if success, NULL else (out of memory)
  */
 files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
