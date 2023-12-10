@@ -32,24 +32,11 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         make_files_list(src_list, the_config->source);
         make_files_list(dst_list, the_config->destination);
     }
-    printf("Cursor : %s\n", src_list->head->path_and_name);
-    files_list_entry_t *src_cursor = src_list->head;
-    while (src_cursor) {
-        files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
-        if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
-            add_entry_to_tail(diff_list, src_cursor);
-        }
-        src_cursor = src_cursor->next;
-    }
-    files_list_entry_t *diff_cursor = diff_list->head;
-    while (diff_cursor) {
-        copy_entry_to_destination(diff_cursor, the_config);
-        diff_cursor = diff_cursor->next;
-    }
-
-    clear_files_list(src_list);
-    clear_files_list(dst_list);
-    clear_files_list(diff_list);
+    //On affiche les listes
+    printf("Liste source :\n");
+    display_files_list(src_list);
+    printf("Liste destination :\n");
+    display_files_list(dst_list);
 }
 
 /*!
