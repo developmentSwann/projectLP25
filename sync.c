@@ -187,6 +187,9 @@ void make_list(files_list_t *list, char *target) {
                     addEntryToTail->prev = NULL;
                 //On ajoute le dossier à la liste
                 add_entry_to_tail(list, addEntryToTail);
+                //On appelle la fonction récursivement
+                make_list(list, concat_path(path, target, entry->d_name));
+
 
 
 
@@ -201,6 +204,7 @@ void make_list(files_list_t *list, char *target) {
                     addEntryToTail->prev = NULL;
                 //On ajoute le fichier à la liste
                 add_entry_to_tail(list, addEntryToTail);
+
             }
         }
         // Obtenir la prochaine entrée
