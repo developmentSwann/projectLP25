@@ -180,7 +180,7 @@ void make_list(files_list_t *list, char *target) {
                 //On récupère le dossier pour ensuite le rajouter à la liste
                  addEntryToTail->entry_type = DOSSIER;
                     addEntryToTail->mode = path_stat.st_mode;
-                    addEntryToTail->mtime = path_stat.st_mtim;
+                    addEntryToTail->mtime.tv_sec = path_stat.st_mtime;
                     addEntryToTail->size = path_stat.st_size;
                     strcpy(addEntryToTail->path_and_name, concat_path(path, target, entry->d_name));
                     addEntryToTail->next = NULL;
@@ -194,7 +194,7 @@ void make_list(files_list_t *list, char *target) {
                 //On récupère le fichier pour ensuite le rajouter à la liste
                 addEntryToTail->entry_type = FICHIER;
                     addEntryToTail->mode = path_stat.st_mode;
-                    addEntryToTail->mtime = path_stat.st_mtim;
+                    addEntryToTail->mtime.tv_sec = path_stat.st_mtime;
                     addEntryToTail->size = path_stat.st_size;
                     strcpy(addEntryToTail->path_and_name, concat_path(path, target, entry->d_name));
                     addEntryToTail->next = NULL;
