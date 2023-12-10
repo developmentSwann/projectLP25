@@ -1,5 +1,7 @@
 #include <defines.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /*!
  * @brief concat_path concatenates suffix to prefix into result
@@ -11,13 +13,17 @@
  * @return a pointer to the resulting path, NULL when concatenation failed
  */
 char *concat_path(char *result, char *prefix, char *suffix) {
-    if (strlen(prefix) + strlen(suffix) + 2 > PATH_SIZE) {
-        return NULL;
-    }
-    strcpy(result, prefix);
+    char *suffixFinal = malloc(sizeof(char)*PATH_SIZE);
+    //suffixFinal = prefix (chemin de destination) + suffix (nom du dossier si il y en a un / nom du fichier)
+    // Exemple :
+    // prefix = /home/destination
+    // suffix = /home/source/test/ABC.txt
+    // suffixFinal = /home/destination/test/ABC.txt
+    strcpy(suffixFinal, prefix);
     if (prefix[strlen(prefix) - 1] != '/') {
-        strcat(result, "/");
+        strcat(suffixFinal, "/");
     }
-    strcat(result, suffix);
-    return result;
+    strcat(suffixFinal, suffix);
+    return suffixFinal;
 }
+
