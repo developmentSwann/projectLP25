@@ -21,23 +21,45 @@
  * @param p_context is a pointer to the processes context
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
-    files_list_t src_list;
-    files_list_t dst_list;
-    files_list_t diff_list;
-    init_files_list(&src_list);
-    init_files_list(&dst_list);
-    init_files_list(&diff_list);
+    files_list_t src_list,dst_list,diff_list;
+    src_list.head = NULL;
+    src_list.tail = NULL;
+
+    dst_list.head = NULL;
+    dst_list.tail = NULL;
+
+    diff_list.head = NULL;
+    diff_list.tail = NULL;
+
+
     if (the_config->is_parallel) {
-        make_files_lists_parallel(&src_list, &dst_list, the_config, p_context->message_queue_id);
+        //TODO : Parallel
     } else {
         make_files_list(&src_list, the_config->source);
         make_files_list(&dst_list, the_config->destination);
     }
-    make_diff_list(&src_list, &dst_list, &diff_list, the_config->uses_md5);
-    apply_diff_list(&diff_list, the_config);
+
+    files_list_entry_t *src_cursor = src_list.head;
+    while (src_cursor) {
+        files_list_entry_t *dst_entry = find_entry_by_name(&dst_list, src_cursor->path_and_name, 0, 0);
+        if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
+            add_entry_to_tail(&diff_list, src_cursor);
+        }
+        src_cursor = src_cursor->next;
+    }
+
+    files_list_entry_t *diff_cursor = diff_list.head;
+    while (diff_cursor) {
+        copy_entry_to_destination(diff_cursor, the_config);
+        diff_cursor = diff_cursor->next;
+    }
+
     clear_files_list(&src_list);
     clear_files_list(&dst_list);
     clear_files_list(&diff_list);
+
+
+
 
 }
 
@@ -74,6 +96,13 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  */
 void make_files_list(files_list_t *list, char *target_path) {
     make_list(list, target_path);
+    files_list_entry_t *cursor = list->head;
+    while (cursor) {
+        if (get_file_stats(cursor) < 0) {
+            printf("Impossible de recuperer les informations du fichier %s\n", cursor->path_and_name);
+        }
+        cursor = cursor->next;
+    }
 }
 
 /*!
