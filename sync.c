@@ -161,7 +161,7 @@ void make_list(files_list_t *list, char *target) {
         return;
     }
     struct dirent *entry = get_next_entry(dir);
-    while (entry && entry->d_name != NULL && strlen(entry->d_name) > 0 && (entry->d_name)[0] != '\0' || strcmp(entry->d_name, ".") != 0 || strcmp(entry->d_name, "..") != 0) {
+    while (entry && entry->d_name != NULL && strlen(entry->d_name) > 0 && (entry->d_name)[0] != '\0' && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
