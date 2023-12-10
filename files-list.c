@@ -2,9 +2,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "file-properties.h"
-#include <stdio.h>
 
+
+#include <stdio.h>
+#include "file-properties.h"
 
 /*!
  * @brief clear_files_list clears a files list
@@ -23,7 +24,7 @@ void clear_files_list(files_list_t *list) {
  *  @brief add_file_entry adds a new file to the files list.
  *  It adds the file in an ordered manner (strcmp) and fills its properties
  *  by calling stat on the file.
- *  Il the file already exists, it does nothing and returns 0
+ *  If the file already exists, it does nothing and returns 0
  *  @param list the list to add the file entry into
  *  @param file_path the full path (from the root of the considered tree) of the file
  *  @return 0 if success, -1 else (out of memory)
@@ -41,15 +42,15 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     if (list->head == NULL) {
         list->head = new_entry;
         list->tail = new_entry;
-        new_entry->next = NULL;
         new_entry->prev = NULL;
+        new_entry->next = NULL;
         return new_entry;
     }
     files_list_entry_t *cursor = list->head;
     while (cursor) {
         if (strcmp(cursor->path_and_name, file_path) == 0) {
             free(new_entry);
-            return NULL;
+            return cursor;
         }
         if (strcmp(cursor->path_and_name, file_path) > 0) {
             if (cursor->prev) {
@@ -62,13 +63,15 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
             cursor->prev = new_entry;
             return new_entry;
         }
+        if (cursor->next == NULL) {
+            cursor->next = new_entry;
+            new_entry->prev = cursor;
+            list->tail = new_entry;
+            return new_entry;
+        }
         cursor = cursor->next;
     }
-    list->tail->next = new_entry;
-    new_entry->prev = list->tail;
-    new_entry->next = NULL;
-    list->tail = new_entry;
-    return new_entry;
+    return NULL;
 
 }
 
@@ -81,23 +84,23 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
  * @return 0 in case of success, -1 else
  */
 int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
-    if (entry == NULL) {
+    if (entry == NULL || list == NULL) {
         return -1;
     }
-    else if (list->head == NULL) {
+    if (list->head == NULL) {
         list->head = entry;
         list->tail = entry;
-        entry->next = NULL;
         entry->prev = NULL;
-        return 0;
-    }
-    else {
-        list->tail->next = entry;
-        entry->prev = list->tail;
         entry->next = NULL;
-        list->tail = entry;
         return 0;
     }
+    files_list_entry_t *cursor = list->tail;
+    cursor->next = entry;
+    entry->prev = cursor;
+    entry->next = NULL;
+    list->tail = entry;
+    return 0;
+
 }
 
 /*!
@@ -110,7 +113,7 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
  *  @return a pointer to the element found, NULL if none were found.
  */
 files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size_t start_of_src, size_t start_of_dest) {
-    if(list == NULL || file_path == NULL) {
+    if (list == NULL || file_path == NULL) {
         return NULL;
     }
     files_list_entry_t *cursor = list->head;
