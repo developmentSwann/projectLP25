@@ -37,18 +37,15 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     //On affiche les listes
     printf("Liste source :\n");
     files_list_entry_t *cursor = src_list->head;
-    while (cursor) {
-        printf("Fichier : %s\n", cursor->path_and_name);
-        cursor = cursor->next;
-    }
+
     printf("Liste destination :\n");
     display_files_list(dst_list);
     //On compare les listes
     files_list_entry_t *src_cursor = src_list->head;
     while (src_cursor) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
-        printf("Fichier source : %s\n", src_cursor->path_and_name);
-        printf("Fichier destination : %s\n", dst_entry->path_and_name);
+        printf("Liste source :\n");
+        display_files_list(src_list);
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
             //On ajoute le fichier a la liste des fichiers a copier
