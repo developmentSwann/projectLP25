@@ -136,34 +136,49 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         close(source_fd);
         return;
     }
-    // On cree le fichier de destination (nom de fichier destination = chemin de destination + nom de fichier source)
-    printf("Chemin de destination : %s\n", the_config->destination);
-    printf("Nom de fichier source : %s\n", source_entry->path_and_name);
-    //Récupérer juste le nom du fichier source
-    char *file_name = strrchr(source_entry->path_and_name, '/');
-    printf("Nom de fichier source : %s\n", file_name);
-    //On concatene le chemin de destination avec le nom de fichier source
-    char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
-    strcpy(dest_path, the_config->destination);
-    strcat(dest_path, file_name);
-    printf("Chemin de destination : %s\n", dest_path);
-    dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
-    // On ouvre le fichier de destination
-    if (dest_fd == -1) {
-        perror("Impossible de creer le fichier de destination");
-        close(source_fd);
-        return;
-    }
-    // On copie le fichier
-    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) {
-        perror("Impossible de copier le fichier");
+    //Si c'est un fichier :
+    if (S_ISREG(stat_buf.st_mode)) {
+        // On cree le fichier de destination (nom de fichier destination = chemin de destination + nom de fichier source)
+        printf("Chemin de destination : %s\n", the_config->destination);
+        printf("Nom de fichier source : %s\n", source_entry->path_and_name);
+        //Récupérer juste le nom du fichier source
+        char *file_name = strrchr(source_entry->path_and_name, '/');
+        printf("Nom de fichier source : %s\n", file_name);
+        //On concatene le chemin de destination avec le nom de fichier source
+        char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
+        strcpy(dest_path, the_config->destination);
+        strcat(dest_path, file_name);
+        printf("Chemin de destination : %s\n", dest_path);
+        dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
+        // On ouvre le fichier de destination
+        if (dest_fd == -1) {
+            perror("Impossible de creer le fichier de destination");
+            close(source_fd);
+            return;
+        }
+        // On copie le fichier
+        if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) {
+            perror("Impossible de copier le fichier");
+            close(source_fd);
+            close(dest_fd);
+            return;
+        }
+        // On ferme les fichiers
         close(source_fd);
         close(dest_fd);
-        return;
+    } else if (S_ISDIR(stat_buf.st_mode)) {
+        //Si c'est un dossier :
+        // On cree le dossier de destination (nom de dossier destination = chemin de destination + nom de dossier source)
+        // On cree le dossier de destination
+        if (mkdir(source_entry->path_and_name) == -1){
+            perror("Impossible de creer le dossier de destination");
+            close(source_fd);
+            return;
+        }
+        // On ferme le fichier
+        close(source_fd);
     }
-    // On ferme les fichiers
-    close(source_fd);
-    close(dest_fd);
+
     return;
 }
 
@@ -182,13 +197,13 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry = get_next_entry(dir);
+
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
 
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
 
-            // Allouer dynamiquement de la mémoire pour le chemin
             size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
 
 
@@ -197,7 +212,6 @@ void make_list(files_list_t *list, char *target) {
                 printf("Failed to allocate memory for path\n");
                 return;
             }
-            //Check si c'est un dossier
 
             struct stat path_stat;
             stat(concat_path(path->path_and_name, target, entry->d_name), &path_stat);
@@ -210,6 +224,8 @@ void make_list(files_list_t *list, char *target) {
                     return;
                 }
                 strcpy(path_and_name, target);
+                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+
                 make_list(list, concat_path(path_and_name, target, entry->d_name));
             } else {
                 add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
