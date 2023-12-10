@@ -87,20 +87,19 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
     if (list == NULL || entry == NULL) {
         return -1;
     }
-
-
-    entry->prev = NULL;
-    entry->next = NULL;
-
-
     if (list->head == NULL) {
         list->head = entry;
         list->tail = entry;
-    } else {
-        entry->prev = list->tail;
-        list->tail->next = entry;
-        list->tail = entry;
+        entry->prev = NULL;
+        entry->next = NULL;
+        return 0;
     }
+    list->tail->next = entry;
+    entry->prev = list->tail;
+    entry->next = NULL;
+    list->tail = entry;
+
+    printf("Added entry %s\n", entry->path_and_name);
 
     return 0;
 }
