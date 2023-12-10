@@ -164,50 +164,57 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry = get_next_entry(dir);
-    while (entry && strlen(entry->d_name) > 0 && (entry->d_name)[0] != '\0' && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-        printf("Entry : %s\n", entry->d_name);
+    while (entry != NULL) {
+        if (strlen(entry->d_name) > 0 && (entry->d_name)[0] != '\0' && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0){
+            printf("Entry : %s\n", entry->d_name);
 
-        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-            printf("Ajout de %s\n", entry->d_name);
+            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+                printf("Ajout de %s\n", entry->d_name);
 
-            // Allouer dynamiquement de la mémoire pour le chemin
-            size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
-            char *path = malloc(sizeof(char) * path_size);
+                // Allouer dynamiquement de la mémoire pour le chemin
+                size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
+                char *path = malloc(sizeof(char) * path_size);
 
-            if (path == NULL) {
-                printf("Failed to allocate memory for path\n");
-                return;
+                if (path == NULL) {
+                    printf("Failed to allocate memory for path\n");
+                    return;
+                }
+
+                // Construire le chemin avec snprintf
+                int result = snprintf(path, path_size, "%s/%s", target, entry->d_name);
+                if (result < 0 || (size_t)result >= path_size) {
+                    printf("Failed to construct path\n");
+                    free(path);
+                    return;
+                }
+
+                // Vérifier si c'est un dossier
+                struct stat stat_buf;
+                if (stat(path, &stat_buf) == -1) {
+                    printf("Impossible de lire les informations du fichier %s\n", path);
+                    free(path);
+                    return;
+                }
+
+                if (S_ISDIR(stat_buf.st_mode)) {
+                    printf("C'est un dossier\n");
+                    make_list(list, path);
+                } else {
+                    printf("C'est un fichier\n");
+                    add_entry_to_tail(list, path);
+                }
+
+                printf("Ajout de %s reussi\n", entry->d_name);
             }
 
-            // Construire le chemin avec snprintf
-            int result = snprintf(path, path_size, "%s/%s", target, entry->d_name);
-            if (result < 0 || (size_t)result >= path_size) {
-                printf("Failed to construct path\n");
-                free(path);
-                return;
-            }
-
-            // Vérifier si c'est un dossier
-            struct stat stat_buf;
-            if (stat(path, &stat_buf) == -1) {
-                printf("Impossible de lire les informations du fichier %s\n", path);
-                free(path);
-                return;
-            }
-
-            if (S_ISDIR(stat_buf.st_mode)) {
-                printf("C'est un dossier\n");
-                make_list(list, path);
-            } else {
-                printf("C'est un fichier\n");
-                add_entry_to_tail(list, path);
-            }
-
-            printf("Ajout de %s reussi\n", entry->d_name);
+            // Obtenir la prochaine entrée
+            entry = get_next_entry(dir);
+            printf("Prochaine entree : %s\n", entry->d_name);
         }
-
-        // Obtenir la prochaine entrée
-        entry = get_next_entry(dir);
+        else {
+            printf("Pas d'entree\n");
+            entry = get_next_entry(dir);
+        }
     }
 
     // Fermer le dossier
