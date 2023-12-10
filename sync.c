@@ -209,12 +209,17 @@ void make_list(files_list_t *list, char *target) {
             // Obtenir la prochaine entrée
             entry = get_next_entry(dir);
             printf("Prochaine entree : %s\n", entry->d_name);
+            if (entry == NULL || strcmp(entry->d_name, "..") == 0) {
+                printf("Fin du dossier\n");
+                return;
+            }
 
 
     }
 
     // Fermer le dossier
     closedir(dir);
+    return;
 }
 
 
