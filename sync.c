@@ -48,7 +48,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
             //On ajoute le fichier a la liste des fichiers a copier
-            add_entry_to_tail(diff_list, src_cursor->path_and_name);
+            add_entry_to_tail(diff_list, src_cursor);
         }
 
         src_cursor = src_cursor->next;
@@ -126,8 +126,8 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     concat_path(path, the_config->destination, source_entry->path_and_name);
 
     if (source_entry->entry_type == DOSSIER) {
+
         mkdir(path);
-        ;
     }else{
         int fd = open(path, O_CREAT | O_WRONLY, source_entry->mode);
         if (fd == -1) {
@@ -171,42 +171,33 @@ void make_list(files_list_t *list, char *target) {
         printf("Impossible d'ouvrir le dossier %s\n", target);
         return;
     }
-
+    files_list_entry_t *currentEntry = list->head;
     struct dirent *entry = get_next_entry(dir);
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
-
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
-
             // Allouer dynamiquement de la mémoire pour le chemin
             size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
-
-
-            files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
+            char *path = malloc(sizeof(char) * path_size);
             if (path == NULL) {
                 printf("Failed to allocate memory for path\n");
                 return;
             }
             //Check si c'est un dossier
-
             struct stat path_stat;
-            stat(concat_path(path->path_and_name, target, entry->d_name), &path_stat);
+            stat(concat_path(path, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
-
             if (is_directory) {
                 //On ajoute le dossier a la liste
-                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+                add_entry_to_tail(list, concat_path(path, target, entry->d_name));
                 //On appelle la fonction recursivement
-                make_list(list, concat_path(path->path_and_name, target, entry->d_name));
+                make_list(list, concat_path(path, target, entry->d_name));
+
             } else {
-                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+                add_entry_to_tail(list, path);
             }
-
-
-
         }
-
         // Obtenir la prochaine entrée
         entry = get_next_entry(dir);
         if (strcmp(entry->d_name, "..") == 0) {
@@ -215,10 +206,57 @@ void make_list(files_list_t *list, char *target) {
             closedir(dir);
             return;
         }
-
-
     }
-    closedir(dir);
+
+//    struct dirent *entry = get_next_entry(dir);
+//    while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
+//
+//        printf("Entry : %s\n", entry->d_name);
+//
+//        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+//            printf("Ajout de %s\n", entry->d_name);
+//
+//            // Allouer dynamiquement de la mémoire pour le chemin
+//            size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
+//
+//
+//            files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
+//
+//            if (path == NULL) {
+//                printf("Failed to allocate memory for path\n");
+//                return;
+//            }
+//            //Check si c'est un dossier
+//
+//            struct stat path_stat;
+//            stat(concat_path(path->path_and_name, target, entry->d_name), &path_stat);
+//            bool is_directory = S_ISDIR(path_stat.st_mode);
+//
+//            if (is_directory) {
+//                //On ajoute le dossier a la liste
+//                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+//                //On appelle la fonction recursivement
+//                make_list(list, concat_path(path->path_and_name, target, entry->d_name));
+//            } else {
+//                add_entry_to_tail(list, path);
+//            }
+//
+//
+//
+//        }
+//
+//        // Obtenir la prochaine entrée
+//        entry = get_next_entry(dir);
+//        if (strcmp(entry->d_name, "..") == 0) {
+//            printf("Fin du dossier\n");
+//            // Fermer le dossier
+//            closedir(dir);
+//            return;
+//        }
+//
+//
+//    }
+//    closedir(dir);
     return;
 
 }
