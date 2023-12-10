@@ -205,11 +205,13 @@ void make_list(files_list_t *list, char *target) {
                 printf("Fin du dossier\n");
                 // Fermer le dossier
                 closedir(dir);
-            }
                 return;
+            }
 
 
     }
+    closedir(dir);
+    return;
 
   }
 
