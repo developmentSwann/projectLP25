@@ -151,7 +151,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         struct timespec times[2];
         times[0] = source_entry->mtime;
         times[1] = source_entry->mtime;
-        char absolute_path[PATH_MAX];
+        char absolute_path[260];
         realpath(path, absolute_path);
         utimensat(0, absolute_path, times, 0);
     }
@@ -174,6 +174,7 @@ void make_list(files_list_t *list, char *target) {
     }
     files_list_entry_t *currentEntry = list->head;
     struct dirent *entry = get_next_entry(dir);
+    files_list_entry_t *newEntry = malloc(sizeof(files_list_entry_t));
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
@@ -190,13 +191,23 @@ void make_list(files_list_t *list, char *target) {
             stat(concat_path(path, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
             if (is_directory) {
+                newEntry->entry_type = DOSSIER;
+                newEntry->mode = path_stat.st_mode;
+                newEntry->mtime.tv_sec = path_stat.st_mtime;
+                newEntry->size = path_stat.st_size;
+
                 //On ajoute le dossier a la liste
-                add_entry_to_tail(list, concat_path(path, target, entry->d_name));
+                add_entry_to_tail(list, newEntry);
                 //On appelle la fonction recursivement
                 make_list(list, concat_path(path, target, entry->d_name));
 
             } else {
-                add_entry_to_tail(list, path);
+                newEntry->entry_type = FICHIER;
+                newEntry->mode = path_stat.st_mode;
+                newEntry->mtime.tv_sec = path_stat.st_mtime;
+                newEntry->size = path_stat.st_size;
+                //On ajoute le fichier a la liste
+                add_entry_to_tail(list, newEntry);
             }
         }
         // Obtenir la prochaine entrée
