@@ -36,7 +36,11 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     }
     //On affiche les listes
     printf("Liste source :\n");
-    display_files_list(src_list);
+    files_list_entry_t *cursor = src_list->head;
+    while (cursor) {
+        printf("Fichier : %s\n", cursor->path_and_name);
+        cursor = cursor->next;
+    }
     printf("Liste destination :\n");
     display_files_list(dst_list);
     //On compare les listes
@@ -48,10 +52,11 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
             //On ajoute le fichier a la liste des fichiers a copier
-            add_entry_to_tail(diff_list, src_cursor);
+            add_entry_to_tail(diff_list, src_cursor->path_and_name);
         }
 
         src_cursor = src_cursor->next;
+        printf("Fichier source suivant : %s\n", src_cursor->path_and_name);
     }
     //On affiche la liste des fichiers a copier
     printf("Liste des fichiers a copier :\n");
@@ -63,9 +68,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         diff_cursor = diff_cursor->next;
     }
 
-    clear_files_list(src_list);
-    clear_files_list(dst_list);
-    clear_files_list(diff_list);
+    return;
 }
 
 /*!
@@ -101,15 +104,7 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  */
 void  make_files_list(files_list_t *list, char *target_path) {
     make_list(list, target_path);
-    files_list_entry_t *cursor = list->head;
-
-
-    while (cursor) {
-        if (get_file_stats(cursor) < 0) {
-            printf("Impossible de recuperer les informations du fichier %s\n", cursor->path_and_name);
-        }
-        cursor = cursor->next;
-    }
+    return;
 }
 
 /*!
@@ -153,10 +148,11 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     printf("Nom de fichier source : %s\n", file_name);
     //On concatene le chemin de destination avec le nom de fichier source
     char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
-    concat_path(dest_path, the_config->destination, file_name);
+    strcpy(dest_path, the_config->destination);
+    strcat(dest_path, file_name);
     printf("Chemin de destination : %s\n", dest_path);
-    // On cree le fichier de destination
     dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
+    // On ouvre le fichier de destination
     if (dest_fd == -1) {
         perror("Impossible de creer le fichier de destination");
         close(source_fd);
@@ -191,46 +187,46 @@ void make_list(files_list_t *list, char *target) {
 
     struct dirent *entry = get_next_entry(dir);
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
-            printf("Entry : %s\n", entry->d_name);
+        printf("Entry : %s\n", entry->d_name);
 
-            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-                printf("Ajout de %s\n", entry->d_name);
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            printf("Ajout de %s\n", entry->d_name);
 
-                // Allouer dynamiquement de la mémoire pour le chemin
-                size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
+            // Allouer dynamiquement de la mémoire pour le chemin
+            size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
 
 
-                files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
-                if (path == NULL) {
-                    printf("Failed to allocate memory for path\n");
-                    return;
-                }
-
-                if (entry->d_type == 4) {
-                    make_list(list,concat_path(path->path_and_name, target, entry->d_name));
-
-                } else {
-                    add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
-                    free(path);
-                }
-
-            }
-
-            // Obtenir la prochaine entrée
-            entry = get_next_entry(dir);
-            if (strcmp(entry->d_name, "..") == 0) {
-                printf("Fin du dossier\n");
-                // Fermer le dossier
-                closedir(dir);
+            files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
+            if (path == NULL) {
+                printf("Failed to allocate memory for path\n");
                 return;
             }
+
+            if (entry->d_type == 4) {
+                // Appeler make_list sur le dossier
+                make_list(list,concat_path(path->path_and_name, target, entry->d_name));
+            } else {
+                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+
+            }
+
+        }
+
+        // Obtenir la prochaine entrée
+        entry = get_next_entry(dir);
+        if (strcmp(entry->d_name, "..") == 0) {
+            printf("Fin du dossier\n");
+            // Fermer le dossier
+            closedir(dir);
+            return;
+        }
 
 
     }
     closedir(dir);
     return;
 
-  }
+}
 
 
 /*!
