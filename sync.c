@@ -155,8 +155,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         realpath(path, absolute_path);
         utimensat(0, absolute_path, times, 0);
     }
-    return
-
+return;
 }
 
 /*!
@@ -191,10 +190,12 @@ void make_list(files_list_t *list, char *target) {
             stat(concat_path(path, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
             if (is_directory) {
+                strcpy(newEntry->path_and_name, concat_path(path, target, entry->d_name));
                 newEntry->entry_type = DOSSIER;
                 newEntry->mode = path_stat.st_mode;
                 newEntry->mtime.tv_sec = path_stat.st_mtime;
                 newEntry->size = path_stat.st_size;
+
 
                 //On ajoute le dossier a la liste
                 add_entry_to_tail(list, newEntry);
@@ -202,6 +203,7 @@ void make_list(files_list_t *list, char *target) {
                 make_list(list, concat_path(path, target, entry->d_name));
 
             } else {
+                strcpy(newEntry->path_and_name, concat_path(path, target, entry->d_name));
                 newEntry->entry_type = FICHIER;
                 newEntry->mode = path_stat.st_mode;
                 newEntry->mtime.tv_sec = path_stat.st_mtime;
