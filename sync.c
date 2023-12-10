@@ -165,17 +165,22 @@ void make_list(files_list_t *list, char *target) {
         printf("Entry : %s\n", entry->d_name);
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
-            char *path = malloc(sizeof(char) * (strlen(target) + strlen(entry->d_name) + 2));
+            size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
+
+            char *path = malloc(sizeof(char) * path_size);
             if (path == NULL) {
                 printf("Failed to allocate memory for path\n");
                 return;
             }
-            int result = snprintf(path, strlen(target) + strlen(entry->d_name) + 2, "%s/%s", target, entry->d_name);
-            if (result < 0 || result >= strlen(target) + strlen(entry->d_name) + 2) {
+
+            int result = snprintf(path, path_size, "%s/%s", target, entry->d_name);
+            if (result < 0 || result >= path_size) {
                 printf("Failed to write to path\n");
                 free(path);
                 return;
             }
+
+
             //Check si c'est un dossier
             struct stat stat_buf;
             if (stat(path, &stat_buf) == -1) {
@@ -185,7 +190,6 @@ void make_list(files_list_t *list, char *target) {
             }
             if (S_ISDIR(stat_buf.st_mode)) {
                 printf("C'est un dossier\n");
-                add_entry_to_tail(list, path);
                 make_list(list, path);
             }
             else {
