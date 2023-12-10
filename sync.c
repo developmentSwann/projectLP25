@@ -159,9 +159,10 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
     strcpy(dest_path, the_config->destination);
     strcat(dest_path, file_name);
+    free(file_name);
     printf("Chemin de destination : %s\n", dest_path);
+    // On cree le fichier de destination
     dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
-    // On ouvre le fichier de destination
     if (dest_fd == -1) {
         perror("Impossible de creer le fichier de destination");
         close(source_fd);
@@ -212,11 +213,11 @@ void make_list(files_list_t *list, char *target) {
                 }
 
                 if (entry->d_type == 4) {
-                    // Appeler make_list sur le dossier
                     make_list(list,concat_path(path->path_and_name, target, entry->d_name));
+
                 } else {
                     add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
-
+                    free(path);
                 }
 
             }
