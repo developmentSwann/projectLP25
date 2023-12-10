@@ -188,30 +188,52 @@ void make_list(files_list_t *list, char *target) {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
 
-            // Construire le chemin complet
-            char *full_path = concat_path(target, entry->d_name);
+            // Allouer dynamiquement de la mémoire pour le chemin
+            size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
+
+
+            files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
+            if (path == NULL) {
+                printf("Failed to allocate memory for path\n");
+                return;
+            }
+            //Check si c'est un dossier
 
             struct stat path_stat;
-            stat(full_path, &path_stat);
+            stat(concat_path(path->path_and_name, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
 
             if (is_directory) {
-                make_list(list, full_path);
-                free(full_path); // Libérer la mémoire allouée pour full_path
+                char *path_and_name = malloc(path_size);
+                if (path_and_name == NULL) {
+                    printf("Failed to allocate memory for path_and_name\n");
+                    return;
+                }
+                strcpy(path_and_name, target);
+                make_list(list, concat_path(path_and_name, target, entry->d_name));
             } else {
-                add_entry_to_tail(list, full_path);
-                free(full_path); // Libérer la mémoire allouée pour full_path
+                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
             }
+
+
+
         }
 
         // Obtenir la prochaine entrée
         entry = get_next_entry(dir);
+        if (strcmp(entry->d_name, "..") == 0) {
+            printf("Fin du dossier\n");
+            // Fermer le dossier
+            closedir(dir);
+            return;
+        }
+
+
     }
-
-    // Fermer le dossier
     closedir(dir);
-}
+    return;
 
+}
 
 
 /*!
