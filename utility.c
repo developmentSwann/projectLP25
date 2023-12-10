@@ -24,7 +24,9 @@ char *concat_path(char *result, char *prefix, char *suffix) {
         suffix++;
     }
     suffixFinal = suffix;
-    if (*(cursor - 1) != '/') {
+   //On concatene le prefixe et le suffixe
+    strcpy(result, prefix);
+    if (prefix[strlen(prefix) - 1] != '/') {
         strcat(result, "/");
     }
     strcat(result, suffixFinal);

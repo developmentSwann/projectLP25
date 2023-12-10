@@ -159,7 +159,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         struct timespec times[2];
         times[0] = source_entry->mtime;
         times[1] = source_entry->mtime;
-        char absolute_path[PATH_MAX];
+        char absolute_path[260];
         realpath(path, absolute_path);
         utimensat(0, absolute_path, times, 0);
     }
