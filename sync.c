@@ -127,7 +127,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     concat_path(path, the_config->destination, source_entry->path_and_name);
 
     if (source_entry->entry_type == DOSSIER) {
-        mkdir(path);
+        mkdir(path, source_entry->mode);
     }else{
         int fd = open(path, O_CREAT | O_WRONLY, source_entry->mode);
         if (fd == -1) {
@@ -151,8 +151,9 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         struct timespec times[2];
         times[0] = source_entry->mtime;
         times[1] = source_entry->mtime;
-        utimensat(AT_FDCWD, path, times, 0);
-
+        char absolute_path[PATH_MAX];
+        realpath(path, absolute_path);
+        utimensat(0, absolute_path, times, 0);
     }
     return
 
