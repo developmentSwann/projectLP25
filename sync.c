@@ -12,6 +12,7 @@
 #include <sys/msg.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 /*!
  * @brief synchronize is the main function for synchronization
@@ -33,6 +34,25 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
  * @return true if both files are not equal, false else
  */
 bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
+if (lhd->entry_type != rhd->entry_type) {
+        return true;
+    }
+    if (lhd->entry_type == DOSSIER) {
+        return false;
+    }
+    if (lhd->size != rhd->size) {
+        return true;
+    }
+    if (lhd->mtime.tv_sec != rhd->mtime.tv_sec) {
+        return true;
+    }
+    if (has_md5) {
+        if (memcmp(lhd->md5sum, rhd->md5sum, 16) != 0) {
+            return true;
+        }
+    }
+    return false;
+
 }
 
 /*!
@@ -41,6 +61,7 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  * @param target_path is the path whose files to list
  */
 void make_files_list(files_list_t *list, char *target_path) {
+
 
 }
 
@@ -61,6 +82,7 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
+
 }
 
 /*!
@@ -71,8 +93,38 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
  * @param target is the target dir whose content must be listed
  */
 void make_list(files_list_t *list, char *target) {
+    DIR *dir = open_dir(target);
+    if (dir == NULL) {
+        return;
+    }
 
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/%s", target, entry->d_name);
+
+        struct stat st;
+        if (stat(path, &st) == -1) {
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode)) {
+            make_list(list, path);
+        } else {
+            files_list_entry_t *file_entry = malloc(sizeof(files_list_entry_t));
+            strcpy(file_entry->path_and_name, path);
+            add_entry_to_tail(list, file_entry);
+        }
+    }
+
+    closedir(dir);
 }
+
+
 
 /*!
  * @brief open_dir opens a dir
