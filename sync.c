@@ -163,6 +163,7 @@ void make_list(files_list_t *list, char *target) {
     struct dirent *entry = get_next_entry(dir);
     while (entry) {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            printf("Ajout de %s\n", entry->d_name);
             char *path = malloc(sizeof(char) * (strlen(target) + strlen(entry->d_name) + 2));
             if (path == NULL) {
                 printf("Failed to allocate memory for path\n");
@@ -174,15 +175,13 @@ void make_list(files_list_t *list, char *target) {
                 free(path);
                 return;
             }
+            add_entry_to_tail(list, path);
             struct stat path_stat;
             stat(path, &path_stat);
             if (S_ISDIR(path_stat.st_mode)) {
                 make_list(list, path);
             }
 
-            free(path);
-        }
-        entry = get_next_entry(dir);
     }
 }
 
