@@ -83,45 +83,27 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
  * @param entry is a pointer to the entry to add. The list becomes owner of the entry.
  * @return 0 in case of success, -1 else
  */
-int add_entry_to_tail(files_list_t *list, const char *path) {
-    if (list == NULL || path == NULL) {
-        return -1;  // Vérifier les paramètres d'entrée
-    }
-
-    // Allouer de la mémoire pour la nouvelle entrée
-    files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
-    if (new_entry == NULL) {
-        printf("Failed to allocate memory for new entry\n");
+int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
+    if (list == NULL || entry == NULL) {
         return -1;
     }
 
-    // Allouer de la mémoire pour le chemin
-    new_entry->path_and_name = strdup(path);
-    if (new_entry->path_and_name == NULL) {
-        printf("Failed to allocate memory for path_and_name\n");
-        free(new_entry);  // Libérer la mémoire de la nouvelle entrée avant de quitter
-        return -1;
-    }
 
-    // Initialiser les valeurs de la nouvelle entrée
-    // (size, mtime, etc.)
+    entry->prev = NULL;
+    entry->next = NULL;
 
-    new_entry->prev = NULL;
-    new_entry->next = NULL;
 
-    // Ajouter la nouvelle entrée à la fin de la liste
     if (list->head == NULL) {
-        list->head = new_entry;
-        list->tail = new_entry;
+        list->head = entry;
+        list->tail = entry;
     } else {
-        new_entry->prev = list->tail;
-        list->tail->next = new_entry;
-        list->tail = new_entry;
+        entry->prev = list->tail;
+        list->tail->next = entry;
+        list->tail = entry;
     }
 
     return 0;
 }
-
 
 /*!
  *  @brief find_entry_by_name looks up for a file in a list
