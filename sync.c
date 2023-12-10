@@ -175,12 +175,27 @@ void make_list(files_list_t *list, char *target) {
                 free(path);
                 return;
             }
-            add_entry_to_tail(list, path);
-            struct stat path_stat;
-            stat(path, &path_stat);
-            if (S_ISDIR(path_stat.st_mode)) {
+            //Check si c'est un dossier
+            struct stat stat_buf;
+            if (stat(path, &stat_buf) == -1) {
+                printf("Impossible de lire les informations du fichier %s\n", path);
+                free(path);
+                return;
+            }
+            if (S_ISDIR(stat_buf.st_mode)) {
+                printf("C'est un dossier\n");
+                add_entry_to_tail(list, path);
                 make_list(list, path);
             }
+            else {
+                printf("C'est un fichier\n");
+                add_entry_to_tail(list, path);
+            }
+
+            printf("Ajout de %s reussi\n", entry->d_name);
+        }
+        entry = get_next_entry(dir);
+
 
     }
 }
