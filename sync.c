@@ -164,8 +164,7 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry = get_next_entry(dir);
-    while (entry != NULL) {
-        if (strlen(entry->d_name) > 0 && (entry->d_name)[0] != '\0' && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0){
+    while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
             printf("Entry : %s\n", entry->d_name);
 
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
@@ -210,11 +209,8 @@ void make_list(files_list_t *list, char *target) {
             // Obtenir la prochaine entrée
             entry = get_next_entry(dir);
             printf("Prochaine entree : %s\n", entry->d_name);
-        }
-        else {
-            printf("Pas d'entree\n");
-            entry = get_next_entry(dir);
-        }
+
+
     }
 
     // Fermer le dossier
