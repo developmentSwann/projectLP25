@@ -13,16 +13,14 @@
  * @return a pointer to the resulting path, NULL when concatenation failed
  */
 char *concat_path(char *result, char *prefix, char *suffix) {
-    //suffixFinal = prefix (chemin de destination) + suffix (nom du dossier si il y en a un / nom du fichier)
-    // Exemple :
-    // prefix = /home/destination
-    // suffix = /home/source/test/ABC.txt
-    // suffixFinal = /home/destination/test/ABC.txt
-      char *suffixFinal = prefix;
-    if (prefix[strlen(prefix) - 1] != '/') {
-        strcat(suffixFinal, "/");
+    if (strlen(prefix) + strlen(suffix) + 2 > PATH_SIZE) {
+        return NULL;
     }
-    strcat(suffixFinal, suffix);
-    return suffixFinal;
+    strcpy(result, prefix);
+    if (prefix[strlen(prefix) - 1] != '/') {
+        strcat(result, "/");
+    }
+    strcat(result, suffix);
+    return result;
 }
 
