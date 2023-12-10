@@ -45,11 +45,10 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
         printf("Liste source :\n");
         display_files_list(src_list);
-        printf("/!/ Type : %d\n", src_cursor->entry_type);
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
             //On ajoute le fichier a la liste des fichiers a copier
-            add_entry_to_tail(diff_list, src_cursor);
+            add_entry_to_tail(diff_list, src_cursor->path_and_name);
         }
 
         src_cursor = src_cursor->next;
@@ -122,41 +121,50 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
-    //On cree le dossier
-    char *path = malloc(sizeof(char) * 4096);
-    concat_path(path, the_config->destination, source_entry->path_and_name);
-
-    if (source_entry->entry_type == DOSSIER) {
-        mkdir(path, source_entry->mode);
-    }else{
-        int fd = open(path, O_CREAT | O_WRONLY, source_entry->mode);
-        if (fd == -1) {
-            printf("Impossible de creer le fichier %s\n", path);
-            return;
-        }
-        //On copie le fichier
-        int fd_src = open(source_entry->path_and_name, O_RDONLY);
-        if (fd_src == -1) {
-            printf("Impossible d'ouvrir le fichier source %s\n", source_entry->path_and_name);
-            return;
-        }
-        struct stat stat_src;
-        stat(source_entry->path_and_name, &stat_src);
-        sendfile(fd, fd_src, NULL, stat_src.st_size);
-
-        close(fd);
-        close(fd_src);
-        chmod(path, source_entry->mode);
-
-        struct timespec times[2];
-        times[0] = source_entry->mtime;
-        times[1] = source_entry->mtime;
-        char absolute_path[PATH_MAX];
-        realpath(path, absolute_path);
-        utimensat(0, absolute_path, times, 0);
+    int source_fd, dest_fd;
+    struct stat stat_buf;
+    off_t offset = 0; // Definie dans sendfile.h
+    source_fd = open(source_entry->path_and_name, O_RDONLY);
+    // On ouvre le fichier source
+    if (source_fd == -1) {
+        perror("Impossible d'ouvrir le fichier source");
+        return;
     }
-    return
-
+    // On recupere les informations du fichier source
+    if (fstat(source_fd, &stat_buf) == -1) {
+        perror("Impossible de lire les informations du fichier source");
+        close(source_fd);
+        return;
+    }
+    // On cree le fichier de destination (nom de fichier destination = chemin de destination + nom de fichier source)
+    printf("Chemin de destination : %s\n", the_config->destination);
+    printf("Nom de fichier source : %s\n", source_entry->path_and_name);
+    //Récupérer juste le nom du fichier source
+    char *file_name = strrchr(source_entry->path_and_name, '/');
+    printf("Nom de fichier source : %s\n", file_name);
+    //On concatene le chemin de destination avec le nom de fichier source
+    char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
+    strcpy(dest_path, the_config->destination);
+    strcat(dest_path, file_name);
+    printf("Chemin de destination : %s\n", dest_path);
+    dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
+    // On ouvre le fichier de destination
+    if (dest_fd == -1) {
+        perror("Impossible de creer le fichier de destination");
+        close(source_fd);
+        return;
+    }
+    // On copie le fichier
+    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) {
+        perror("Impossible de copier le fichier");
+        close(source_fd);
+        close(dest_fd);
+        return;
+    }
+    // On ferme les fichiers
+    close(source_fd);
+    close(dest_fd);
+    return;
 }
 
 /*!
@@ -172,33 +180,42 @@ void make_list(files_list_t *list, char *target) {
         printf("Impossible d'ouvrir le dossier %s\n", target);
         return;
     }
-    files_list_entry_t *currentEntry = list->head;
+
     struct dirent *entry = get_next_entry(dir);
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
+
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
+
             // Allouer dynamiquement de la mémoire pour le chemin
             size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
-            char *path = malloc(sizeof(char) * path_size);
+
+
+            files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
             if (path == NULL) {
                 printf("Failed to allocate memory for path\n");
                 return;
             }
             //Check si c'est un dossier
+
             struct stat path_stat;
-            stat(concat_path(path, target, entry->d_name), &path_stat);
+            stat(concat_path(path->path_and_name, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
+
             if (is_directory) {
                 //On ajoute le dossier a la liste
-                add_entry_to_tail(list, concat_path(path, target, entry->d_name));
+                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
                 //On appelle la fonction recursivement
-                make_list(list, concat_path(path, target, entry->d_name));
-
+                make_list(list, concat_path(path->path_and_name, target, entry->d_name));
             } else {
-                add_entry_to_tail(list, path);
+                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
             }
+
+
+
         }
+
         // Obtenir la prochaine entrée
         entry = get_next_entry(dir);
         if (strcmp(entry->d_name, "..") == 0) {
@@ -207,8 +224,9 @@ void make_list(files_list_t *list, char *target) {
             closedir(dir);
             return;
         }
+
+
     }
-    // Fermer le dossier
     closedir(dir);
     return;
 
