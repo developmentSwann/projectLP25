@@ -181,12 +181,7 @@ void make_list(files_list_t *list, char *target) {
                 }
 
                 // Construire path
-
-                strcpy(path->path_and_name, target);
-                strcat(path->path_and_name, "/");
-                strcat(path->path_and_name, entry->d_name);
-                printf("Path : %s\n", path->path_and_name);
-
+                concat_path(path->path_and_name, target, entry->d_name);
 
 
                 // Vérifier si c'est un dossier
