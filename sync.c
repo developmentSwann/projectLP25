@@ -162,6 +162,7 @@ void make_list(files_list_t *list, char *target) {
     }
     struct dirent *entry = get_next_entry(dir);
     while (entry) {
+        printf("Entry : %s\n", entry->d_name)
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
             char *path = malloc(sizeof(char) * (strlen(target) + strlen(entry->d_name) + 2));
@@ -195,6 +196,7 @@ void make_list(files_list_t *list, char *target) {
             printf("Ajout de %s reussi\n", entry->d_name);
         }
         entry = get_next_entry(dir);
+        printf("Next entry\n");
 
 
     }
