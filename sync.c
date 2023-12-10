@@ -164,12 +164,15 @@ void make_list(files_list_t *list, char *target) {
     while (entry) {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             char *path = malloc(sizeof(char) * (strlen(target) + strlen(entry->d_name) + 2));
-            strcpy(path, target);
-            strcat(path, "/");
-            strcat(path, entry->d_name);
-            files_list_entry_t *list_entry = add_file_entry(list, path);
-            if (list_entry == NULL) {
-                printf("Impossible d'ajouter le fichier %s a la liste\n", path);
+            if (path == NULL) {
+                printf("Failed to allocate memory for path\n");
+                return;
+            }
+            int result = snprintf(path, strlen(target) + strlen(entry->d_name) + 2, "%s/%s", target, entry->d_name);
+            if (result < 0 || result >= strlen(target) + strlen(entry->d_name) + 2) {
+                printf("Failed to write to path\n");
+                free(path);
+                return;
             }
             struct stat path_stat;
             stat(path, &path_stat);
