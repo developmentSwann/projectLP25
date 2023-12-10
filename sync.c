@@ -158,7 +158,7 @@ void make_list(files_list_t *list, char *target) {
     }
     files_list_entry_t *currentEntry = list->head;
     struct dirent *entry = get_next_entry(dir);
-    files_list_entry_t *addEntryToTail = NULL;
+    files_list_entry_t *addEntryToTail = malloc(sizeof(files_list_entry_t));
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
 
         printf("Entry : %s\n", entry->d_name);
