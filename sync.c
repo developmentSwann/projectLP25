@@ -121,50 +121,41 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
-    int source_fd, dest_fd;
-    struct stat stat_buf;
-    off_t offset = 0; // Definie dans sendfile.h
-    source_fd = open(source_entry->path_and_name, O_RDONLY);
-    // On ouvre le fichier source
-    if (source_fd == -1) {
-        perror("Impossible d'ouvrir le fichier source");
-        return;
+    //On cree le dossier
+    char *path = malloc(sizeof(char) * 4096);
+    concat_path(path, the_config->destination, source_entry->path_and_name);
+
+    if (source_entry->entry_type == DOSSIER) {
+        mkdir(path);
+        ;
+    }else{
+        int fd = open(path, O_CREAT | O_WRONLY, source_entry->mode);
+        if (fd == -1) {
+            printf("Impossible de creer le fichier %s\n", path);
+            return;
+        }
+        //On copie le fichier
+        int fd_src = open(source_entry->path_and_name, O_RDONLY);
+        if (fd_src == -1) {
+            printf("Impossible d'ouvrir le fichier source %s\n", source_entry->path_and_name);
+            return;
+        }
+        struct stat stat_src;
+        stat(source_entry->path_and_name, &stat_src);
+        sendfile(fd, fd_src, NULL, stat_src.st_size);
+
+        close(fd);
+        close(fd_src);
+        chmod(path, source_entry->mode);
+
+        struct timespec times[2];
+        times[0] = source_entry->mtime;
+        times[1] = source_entry->mtime;
+        utimensat(AT_FDCWD, path, times, 0);
+
     }
-    // On recupere les informations du fichier source
-    if (fstat(source_fd, &stat_buf) == -1) {
-        perror("Impossible de lire les informations du fichier source");
-        close(source_fd);
-        return;
-    }
-    // On cree le fichier de destination (nom de fichier destination = chemin de destination + nom de fichier source)
-    printf("Chemin de destination : %s\n", the_config->destination);
-    printf("Nom de fichier source : %s\n", source_entry->path_and_name);
-    //Récupérer juste le nom du fichier source
-    char *file_name = strrchr(source_entry->path_and_name, '/');
-    printf("Nom de fichier source : %s\n", file_name);
-    //On concatene le chemin de destination avec le nom de fichier source
-    char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
-    strcpy(dest_path, the_config->destination);
-    strcat(dest_path, file_name);
-    printf("Chemin de destination : %s\n", dest_path);
-    dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
-    // On ouvre le fichier de destination
-    if (dest_fd == -1) {
-        perror("Impossible de creer le fichier de destination");
-        close(source_fd);
-        return;
-    }
-    // On copie le fichier
-    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) {
-        perror("Impossible de copier le fichier");
-        close(source_fd);
-        close(dest_fd);
-        return;
-    }
-    // On ferme les fichiers
-    close(source_fd);
-    close(dest_fd);
-    return;
+    return
+
 }
 
 /*!
