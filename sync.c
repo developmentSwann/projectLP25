@@ -186,7 +186,7 @@ void make_list(files_list_t *list, char *target) {
                     make_list(list,concat_path(path->path_and_name, target, entry->d_name));
                 } else {
                     printf("C'est un fichier\n");
-                    add_entry_to_tail(list, path);
+                    add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
 
                 }
 
@@ -200,16 +200,13 @@ void make_list(files_list_t *list, char *target) {
                 printf("Fin du dossier\n");
                 // Fermer le dossier
                 closedir(dir);
-                return;
             }
+                return;
 
 
     }
 
-    // Fermer le dossier
-    closedir(dir);
-
-}
+  }
 
 
 /*!
