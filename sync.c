@@ -138,29 +138,43 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     struct stat stat_buf;
     off_t offset = 0; // Definie dans sendfile.h
     source_fd = open(source_entry->path_and_name, O_RDONLY);
+    // On ouvre le fichier source
     if (source_fd == -1) {
         perror("Impossible d'ouvrir le fichier source");
         return;
     }
+    // On recupere les informations du fichier source
     if (fstat(source_fd, &stat_buf) == -1) {
         perror("Impossible de lire les informations du fichier source");
         close(source_fd);
         return;
     }
-    dest_fd = open(the_config->destination, O_WRONLY , stat_buf.st_mode);
+    // On cree le fichier de destination
+    dest_fd = open(concat_path(source_entry->path_and_name, the_config->destination, source_entry->path_and_name), O_WRONLY | O_CREAT, stat_buf.st_mode);
     if (dest_fd == -1) {
-        perror("Impossible d'ouvrir le fichier de destination");
+        perror("Impossible de creer le fichier de destination");
         close(source_fd);
         return;
     }
-    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) { // Defini dans sendfile.h
+    // On copie le fichier
+    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) {
         perror("Impossible de copier le fichier");
+        close(source_fd);
+        close(dest_fd);
+        return;
     }
-    else {
-        printf("Fichier bien copie.\n");
-    }
+    // On ferme les fichiers
     close(source_fd);
     close(dest_fd);
+    // On met a jour les dates de modification
+    struct timespec times[2];
+    times[0] = stat_buf.st_atim;
+    times[1] = stat_buf.st_mtim;
+    if (utimensat(AT_FDCWD, concat_path(source_entry->path_and_name, the_config->destination, source_entry->path_and_name), times, 0) == -1) {
+        perror("Impossible de mettre a jour les dates de modification");
+        return;
+    }
+    return;
 }
 
 /*!
