@@ -26,8 +26,8 @@ void display_help(char *my_name) {
  */
 void init_configuration(configuration_t *the_config) {
     the_config->processes_count = 1;
-    the_config->is_parallel = true;
-    the_config->uses_md5 = true;
+    the_config->is_parallel = false;
+    the_config->uses_md5 = false;
     the_config->source[0] = '\0';
     the_config->destination[0] = '\0';
     the_config->is_dry_run = false;
