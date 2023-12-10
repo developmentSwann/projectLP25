@@ -172,40 +172,36 @@ void make_list(files_list_t *list, char *target) {
 
                 // Allouer dynamiquement de la mémoire pour le chemin
                 size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
-                char *path = malloc(sizeof(char) * path_size);
 
+
+                files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
                 if (path == NULL) {
                     printf("Failed to allocate memory for path\n");
                     return;
                 }
 
-                // Construire le chemin avec snprintf
-                int result = snprintf(path, path_size, "%s/%s", target, entry->d_name);
-                if (result < 0 || (size_t)result >= path_size) {
-                    printf("Failed to construct path\n");
-                    free(path);
-                    return;
-                }
+                // Construire path
+
+                strcpy(path->path_and_name, target);
+                strcat(path->path_and_name, "/");
+                strcat(path->path_and_name, entry->d_name);
+                printf("Path : %s\n", path->path_and_name);
+
+
 
                 // Vérifier si c'est un dossier
                 struct stat stat_buf;
-                if (stat(path, &stat_buf) == -1) {
-                    printf("Impossible de lire les informations du fichier %s\n", path);
-                    free(path);
+                if (stat(path->path_and_name, &stat_buf) < 0) {
+                    perror("stat");
                     return;
                 }
-
                 if (S_ISDIR(stat_buf.st_mode)) {
                     printf("C'est un dossier\n");
                     make_list(list, path);
-                    free(path);
 
                 } else {
-                    files_list_entry_t *rst = malloc(sizeof(files_list_entry_t));
-                    strcpy(rst->path_and_name, path);
                     printf("C'est un fichier\n");
-                    add_entry_to_tail(list, rst);
-                    free(path);
+                    add_entry_to_tail(list, path);
 
                 }
 
@@ -217,7 +213,6 @@ void make_list(files_list_t *list, char *target) {
             printf("Prochaine entree : %s\n", entry->d_name);
             if (strcmp(entry->d_name, "..") == 0) {
                 printf("Fin du dossier\n");
-                free(entry);
                 break;
             }
 
