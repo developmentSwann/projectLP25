@@ -93,6 +93,11 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
 void  make_files_list(files_list_t *list, char *target_path) {
     make_list(list, target_path);
     files_list_entry_t *cursor = list->head;
+    printf("Affichage de la liste :\n");
+    while (cursor) {
+        printf("%s\n", cursor->path_and_name);
+        cursor = cursor->next;
+    }
 
     while (cursor) {
         if (get_file_stats(cursor) < 0) {
