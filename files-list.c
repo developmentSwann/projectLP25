@@ -27,7 +27,7 @@ void clear_files_list(files_list_t *list) {
  *  If the file already exists, it does nothing and returns 0
  *  @param list the list to add the file entry into
  *  @param file_path the full path (from the root of the considered tree) of the file
- *  @return 0 if success, -1 else (out of memory)
+ *  @return a pointer to the added element if success, NULL else (out of memory)
  */
 files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
@@ -84,23 +84,22 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
  * @return 0 in case of success, -1 else
  */
 int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
-    if (entry == NULL || list == NULL) {
+    if (list == NULL || entry == NULL) {
         return -1;
     }
     if (list->head == NULL) {
         list->head = entry;
         list->tail = entry;
-        entry->prev = NULL;
-        entry->next = NULL;
-        return 0;
-    }
-    files_list_entry_t *cursor = list->tail;
-    cursor->next = entry;
-    entry->prev = cursor;
-    entry->next = NULL;
-    list->tail = entry;
-    return 0;
 
+    }else {
+        list->tail->next = entry;
+        list->tail = entry;
+
+    }
+
+
+
+    return 0;
 }
 
 /*!
@@ -116,17 +115,17 @@ files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size
     if (list == NULL || file_path == NULL) {
         return NULL;
     }
+    //On cherche le fichier dans la liste sans modifier la liste
     files_list_entry_t *cursor = list->head;
     while (cursor) {
-        if (strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest) == 0) {
+        if (strcmp(cursor->path_and_name, file_path) == 0) {
             return cursor;
         }
-        if (strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest) > 0) {
+        if (strcmp(cursor->path_and_name, file_path) > 0) {
             return NULL;
         }
         cursor = cursor->next;
     }
-    return NULL;
 }
 
 /*!
@@ -137,7 +136,7 @@ files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size
 void display_files_list(files_list_t *list) {
     if (!list)
         return;
-    
+
     for (files_list_entry_t *cursor=list->head; cursor!=NULL; cursor=cursor->next) {
         printf("%s\n", cursor->path_and_name);
     }
@@ -151,7 +150,7 @@ void display_files_list(files_list_t *list) {
 void display_files_list_reversed(files_list_t *list) {
     if (!list)
         return;
-    
+
     for (files_list_entry_t *cursor=list->tail; cursor!=NULL; cursor=cursor->prev) {
         printf("%s\n", cursor->path_and_name);
     }
