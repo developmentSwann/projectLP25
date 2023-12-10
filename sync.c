@@ -175,6 +175,10 @@ void make_list(files_list_t *list, char *target) {
 
 
                 files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
+                strncpy(path->path_and_name, target, path_size);
+                strncat(path->path_and_name, "/", path_size - strlen(path->path_and_name));
+                strncat(path->path_and_name, entry->d_name, path_size - strlen(path->path_and_name));
+
                 if (path == NULL) {
                     printf("Failed to allocate memory for path\n");
                     return;
@@ -192,7 +196,8 @@ void make_list(files_list_t *list, char *target) {
                 }
                 if (S_ISDIR(stat_buf.st_mode)) {
                     printf("C'est un dossier\n");
-                    make_list(list, path);
+                    // Appeler make_list sur le dossier
+                    make_list(list, path->path_and_name);
 
                 } else {
                     printf("C'est un fichier\n");
@@ -208,7 +213,9 @@ void make_list(files_list_t *list, char *target) {
             printf("Prochaine entree : %s\n", entry->d_name);
             if (strcmp(entry->d_name, "..") == 0) {
                 printf("Fin du dossier\n");
-                break;
+                // Fermer le dossier
+                closedir(dir);
+                return;
             }
 
 
@@ -216,7 +223,7 @@ void make_list(files_list_t *list, char *target) {
 
     // Fermer le dossier
     closedir(dir);
-    return;
+
 }
 
 
