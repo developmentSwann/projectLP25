@@ -155,7 +155,9 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     //Récupérer juste le nom du fichier source
     char *file_name = strrchr(source_entry->path_and_name, '/');
     printf("Nom de fichier source : %s\n", file_name);
-    char *dest_path = concat_path(NULL, the_config->destination, file_name);
+    //On concatene le chemin de destination avec le nom de fichier source
+    char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
+    concat_path(dest_path, the_config->destination, file_name);
     if (dest_fd == -1) {
         perror("Impossible de creer le fichier de destination");
         close(source_fd);
