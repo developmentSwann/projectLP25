@@ -204,8 +204,10 @@ void make_list(files_list_t *list, char *target) {
             bool is_directory = S_ISDIR(path_stat.st_mode);
 
             if (is_directory) {
-                //TODO : Ajouter le dossier a la liste
-                make_list(list,entry->d_name);
+                //On ajoute le dossier a la liste
+                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+                //On appelle la fonction recursivement
+                make_list(list, concat_path(path->path_and_name, target, entry->d_name));
             } else {
                 add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
             }
