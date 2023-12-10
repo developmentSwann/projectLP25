@@ -200,7 +200,7 @@ void make_list(files_list_t *list, char *target) {
             //Check si c'est un dossier
 
             struct stat path_stat;
-            stat(path, &path_stat);
+            stat(concat_path(path->path_and_name, target, entry->d_name), &path_stat);
             bool is_directory = S_ISDIR(path_stat.st_mode);
 
             if (is_directory) {
