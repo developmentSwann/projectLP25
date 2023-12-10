@@ -90,15 +90,10 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
     if (list->head == NULL) {
         list->head = entry;
         list->tail = entry;
-        list->head->prev = NULL;
-        list->head->next = NULL;
 
     }else {
-        files_list_entry_t *temp = list->tail->next;
         list->tail->next = entry;
         list->tail = entry;
-        list->tail->prev = temp;
-        list->tail->next = NULL;
 
     }
 
@@ -141,7 +136,7 @@ files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size
 void display_files_list(files_list_t *list) {
     if (!list)
         return;
-    
+
     for (files_list_entry_t *cursor=list->head; cursor!=NULL; cursor=cursor->next) {
         printf("%s\n", cursor->path_and_name);
     }
@@ -155,7 +150,7 @@ void display_files_list(files_list_t *list) {
 void display_files_list_reversed(files_list_t *list) {
     if (!list)
         return;
-    
+
     for (files_list_entry_t *cursor=list->tail; cursor!=NULL; cursor=cursor->prev) {
         printf("%s\n", cursor->path_and_name);
     }
