@@ -197,14 +197,19 @@ void make_list(files_list_t *list, char *target) {
                 printf("Failed to allocate memory for path\n");
                 return;
             }
+            //Check si c'est un dossier
 
-            if (entry->d_type == 4) {
-                // Appeler make_list sur le dossier
-                make_list(list,concat_path(path->path_and_name, target, entry->d_name));
+            struct stat path_stat;
+            stat(path, &path_stat);
+            bool is_directory = S_ISDIR(path_stat.st_mode);
+
+            if (is_directory) {
+                make_list(list,entry->d_name);
             } else {
                 add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
-
             }
+
+
 
         }
 
