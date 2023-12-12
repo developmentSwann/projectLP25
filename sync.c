@@ -133,6 +133,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     printf("Destination : %s\n", dest_path);
     if (source_entry->entry_type == DOSSIER) {
         mkdir(dest_path, source_entry->mode);
+        chdir(dest_path);
     }else {
         int source_fd = open(source_entry->path_and_name, O_RDONLY);
         int dest_fd = open(dest_path, O_WRONLY | O_CREAT, source_entry->mode);
@@ -140,9 +141,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         fstat(source_fd, &source_stat);
 
         //On accorde les droits
-        fchmod(dest_fd, source_entry->mode);
-
-
+        chmod(dest_path, source_entry->mode);
         sendfile(dest_fd, source_fd, NULL, source_entry->size);
         close(source_fd);
         close(dest_fd);
