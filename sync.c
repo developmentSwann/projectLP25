@@ -185,13 +185,16 @@ void make_list(files_list_t *list, char *target) {
                 if (S_ISDIR(statbuf.st_mode)) {
                     new_entry->entry_type = DOSSIER;
                     make_list(list, path);
+                }
             }
 
 
         }
         entry = get_next_entry(dir);
     }
+    closedir(dir);
     return;
+
 }
 
 
