@@ -170,7 +170,7 @@ void make_list(files_list_t *list, char *target) {
 
     printf("Test1");
     while (entry != NULL ) {
-        if (strcmp(entry->d_name, "..") != 0 || strcmp(entry->d_name, ".") != 0){
+        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){
             struct stat statbuf;
             printf("Entry : %s\n", entry->d_name);
                 strcpy(path, target);
