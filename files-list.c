@@ -30,49 +30,46 @@ void clear_files_list(files_list_t *list) {
  *  @return a pointer to the added element if success, NULL else (out of memory)
  */
 files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
+if (list == NULL || file_path == NULL) {
+        return NULL;
+    }
+    //On cree un nouvel element
     files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
     if (new_entry == NULL) {
         return NULL;
     }
+    //On remplit les proprietes du fichier
     strcpy(new_entry->path_and_name, file_path);
-    if (get_file_stats(new_entry) == -1) {
-        free(new_entry);
-        return NULL;
-    }
+    get_file_stats(new_entry);
+    compute_file_md5(new_entry);
+    //On ajoute le fichier a la liste
     if (list->head == NULL) {
         list->head = new_entry;
         list->tail = new_entry;
-        new_entry->prev = NULL;
-        new_entry->next = NULL;
-        return new_entry;
-    }
-    files_list_entry_t *cursor = list->head;
-    while (cursor) {
-        if (strcmp(cursor->path_and_name, file_path) == 0) {
-            free(new_entry);
-            return cursor;
-        }
-        if (strcmp(cursor->path_and_name, file_path) > 0) {
-            if (cursor->prev) {
-                cursor->prev->next = new_entry;
-            } else {
-                list->head = new_entry;
+    }else {
+        files_list_entry_t *cursor = list->head;
+        while (cursor) {
+            if (strcmp(cursor->path_and_name, new_entry->path_and_name) == 0) {
+                return NULL;
             }
-            new_entry->prev = cursor->prev;
-            new_entry->next = cursor;
-            cursor->prev = new_entry;
-            return new_entry;
+            if (strcmp(cursor->path_and_name, new_entry->path_and_name) > 0) {
+                new_entry->next = cursor;
+                new_entry->prev = cursor->prev;
+                cursor->prev = new_entry;
+                if (new_entry->prev) {
+                    new_entry->prev->next = new_entry;
+                }else {
+                    list->head = new_entry;
+                }
+                return new_entry;
+            }
+            cursor = cursor->next;
         }
-        if (cursor->next == NULL) {
-            cursor->next = new_entry;
-            new_entry->prev = cursor;
-            list->tail = new_entry;
-            return new_entry;
-        }
-        cursor = cursor->next;
+        list->tail->next = new_entry;
+        new_entry->prev = list->tail;
+        list->tail = new_entry;
     }
-    return NULL;
-
+    return new_entry;
 }
 
 /*!

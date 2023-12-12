@@ -36,6 +36,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     }
     //On affiche les listes
     printf("Liste source :\n");
+    display_files_list(src_list);
 
     printf("Liste destination :\n");
     display_files_list(dst_list);
@@ -43,12 +44,11 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     files_list_entry_t *src_cursor = src_list->head;
     while (src_cursor) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
-        printf("Liste source :\n");
-        display_files_list(src_list);
+
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
             //On ajoute le fichier a la liste des fichiers a copier
-            add_entry_to_tail(diff_list, src_cursor->path_and_name);
+            add_entry_to_tail(diff_list, src_cursor);
         }
 
         src_cursor = src_cursor->next;
@@ -121,49 +121,26 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
-    int source_fd, dest_fd;
-    struct stat stat_buf;
-    off_t offset = 0; // Definie dans sendfile.h
-    source_fd = open(source_entry->path_and_name, O_RDONLY);
-    // On ouvre le fichier source
-    if (source_fd == -1) {
-        perror("Impossible d'ouvrir le fichier source");
-        return;
-    }
-    // On recupere les informations du fichier source
-    if (fstat(source_fd, &stat_buf) == -1) {
-        perror("Impossible de lire les informations du fichier source");
-        close(source_fd);
-        return;
-    }
-    // On cree le fichier de destination (nom de fichier destination = chemin de destination + nom de fichier source)
-    printf("Chemin de destination : %s\n", the_config->destination);
-    printf("Nom de fichier source : %s\n", source_entry->path_and_name);
-    //Récupérer juste le nom du fichier source
-    char *file_name = strrchr(source_entry->path_and_name, '/');
-    printf("Nom de fichier source : %s\n", file_name);
-    //On concatene le chemin de destination avec le nom de fichier source
-    char *dest_path = malloc(strlen(the_config->destination) + strlen(file_name) + 1);
+    char *dest_path = malloc(strlen(the_config->destination) + strlen(source_entry->path_and_name) + 2);
     strcpy(dest_path, the_config->destination);
-    strcat(dest_path, file_name);
-    printf("Chemin de destination : %s\n", dest_path);
-    dest_fd = open(dest_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
-    // On ouvre le fichier de destination
-    if (dest_fd == -1) {
-        perror("Impossible de creer le fichier de destination");
-        close(source_fd);
-        return;
-    }
-    // On copie le fichier
-    if (sendfile(dest_fd, source_fd, &offset, stat_buf.st_size) == -1) {
-        perror("Impossible de copier le fichier");
+    strcat(dest_path, "/");
+    strcat(dest_path, source_entry->path_and_name);
+    printf("Destination : %s\n", dest_path);
+    if (source_entry->entry_type == DOSSIER) {
+        mkdir(dest_path, source_entry->mode);
+    }else {
+        int source_fd = open(source_entry->path_and_name, O_RDONLY);
+        int dest_fd = open(dest_path, O_WRONLY | O_CREAT, source_entry->mode);
+        struct stat source_stat;
+        fstat(source_fd, &source_stat);
+        struct timespec times[2];
+        times[0] = source_stat.st_atim;
+        times[1] = source_stat.st_mtim;
+        utimensat(AT_FDCWD, dest_path, times, 0);
+        sendfile(dest_fd, source_fd, NULL, source_entry->size);
         close(source_fd);
         close(dest_fd);
-        return;
     }
-    // On ferme les fichiers
-    close(source_fd);
-    close(dest_fd);
     return;
 }
 
@@ -187,47 +164,28 @@ void make_list(files_list_t *list, char *target) {
 
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
-
-            // Allouer dynamiquement de la mémoire pour le chemin
-            size_t path_size = strlen(target) + strlen(entry->d_name) + 2;
-
-
-            files_list_entry_t *path = malloc(sizeof(files_list_entry_t));
-            if (path == NULL) {
-                printf("Failed to allocate memory for path\n");
+            files_list_entry_t *new_entry = add_file_entry(list, entry->d_name);
+            if (new_entry == NULL) {
+                printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
                 return;
             }
-            //Check si c'est un dossier
-
-            struct stat path_stat;
-            stat(path, &path_stat);
-            bool is_directory = S_ISDIR(path_stat.st_mode);
-
-            if (is_directory) {
-                make_list(list,entry->d_name);
-            } else {
-                add_entry_to_tail(list, concat_path(path->path_and_name, target, entry->d_name));
+            if (entry->d_type == DT_DIR) {
+                printf("Dossier\n");
+                char *new_target = malloc(strlen(target) + strlen(entry->d_name) + 2);
+                strcpy(new_target, target);
+                strcat(new_target, "/");
+                strcat(new_target, entry->d_name);
+                printf("Nouvelle cible : %s\n", new_target);
+                make_list(list, new_target);
             }
-
-
-
         }
-
-        // Obtenir la prochaine entrée
         entry = get_next_entry(dir);
-        if (strcmp(entry->d_name, "..") == 0) {
-            printf("Fin du dossier\n");
-            // Fermer le dossier
-            closedir(dir);
-            return;
-        }
-
-
     }
-    closedir(dir);
     return;
-
 }
+
+
+
 
 
 /*!
