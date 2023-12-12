@@ -34,6 +34,8 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     if (the_config->is_parallel) {
         //TODO : Parallel
     } else {
+        printf("Test3");
+
         make_files_list(src_list, the_config->source);
         make_files_list(dst_list, the_config->destination);
     }
@@ -163,13 +165,16 @@ void make_list(files_list_t *list, char *target) {
     char path[1024]; // Assurez-vous que ce chemin est suffisamment grand.
 
     struct stat statbuf;
-
+    printf("Test1");
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
-        snprintf(path, sizeof(path), "%s/%s", dir, entry->d_name);
-
 
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+            strcpy(path, target);
+            strcat(path, "/");
+            strcat(path, entry->d_name);
+
+
             printf("Ajout de %s\n", entry->d_name);
             files_list_entry_t *new_entry = add_file_entry(list, entry->d_name);
             if (new_entry == NULL) {
@@ -178,14 +183,10 @@ void make_list(files_list_t *list, char *target) {
             }
             if (stat(path, &statbuf) != -1) {
                 if (S_ISDIR(statbuf.st_mode)) {
-                    printf("Dossier\n");
-                    char *new_target = malloc(strlen(target) + strlen(entry->d_name) + 2);
-                    strcpy(new_target, target);
-                    strcat(new_target, "/");
-                    strcat(new_target, entry->d_name);
-                    printf("Nouvelle cible : %s\n", new_target);
-                    make_list(list, new_target);                }
+                    new_entry->entry_type = DOSSIER;
+                    make_list(list, path);
             }
+
 
         }
         entry = get_next_entry(dir);
