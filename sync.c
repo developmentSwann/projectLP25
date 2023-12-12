@@ -185,10 +185,10 @@ void make_list(files_list_t *list, char *target) {
                     printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
                     return;
                 }
-                if (stat(path, &statbuf) != -1) {
+                if (stat(*path, &statbuf) != -1) {
                     if (S_ISDIR(statbuf.st_mode)) {
                         new_entry->entry_type = DOSSIER;
-                        make_list(list, path);
+                        make_list(list, *path);
                     }
                 }
 
