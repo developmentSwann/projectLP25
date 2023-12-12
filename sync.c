@@ -162,34 +162,35 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry = get_next_entry(dir);
-    char path[1024]; // Assurez-vous que ce chemin est suffisamment grand.
+    char path[1024];
 
-    struct stat statbuf;
     printf("Test1");
-    while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
-        printf("Entry : %s\n", entry->d_name);
+    while (entry != NULL ) {
+        if (strcmp(entry->d_name, "..") != 0 || strcmp(entry->d_name, ".") != 0){
+            struct stat statbuf;
+            printf("Entry : %s\n", entry->d_name);
+                strcpy(path, target);
+                strcat(path, "/");
+                strcat(path, entry->d_name);
 
-        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-            strcpy(path, target);
-            strcat(path, "/");
-            strcat(path, entry->d_name);
 
-
-            printf("Ajout de %s\n", entry->d_name);
-            files_list_entry_t *new_entry = add_file_entry(list, entry->d_name);
-            if (new_entry == NULL) {
-                printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
-                return;
-            }
-            if (stat(path, &statbuf) != -1) {
-                if (S_ISDIR(statbuf.st_mode)) {
-                    new_entry->entry_type = DOSSIER;
-                    make_list(list, path);
+                printf("Ajout de %s\n", entry->d_name);
+                files_list_entry_t *new_entry = add_file_entry(list, entry->d_name);
+                if (new_entry == NULL) {
+                    printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
+                    return;
                 }
+                if (stat(path, &statbuf) != -1) {
+                    if (S_ISDIR(statbuf.st_mode)) {
+                        new_entry->entry_type = DOSSIER;
+                        make_list(list, path);
+                    }
+                }
+
+
             }
 
 
-        }
         entry = get_next_entry(dir);
     }
     closedir(dir);
