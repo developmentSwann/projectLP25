@@ -13,6 +13,9 @@
 #include <sys/sendfile.h>
 #include <unistd.h>
 #include <sys/msg.h>
+#include <dirent.h>
+#include <errno.h>
+
 
 
 
@@ -133,16 +136,14 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         int dest_fd = open(dest_path, O_WRONLY | O_CREAT, source_entry->mode);
         struct stat source_stat;
         fstat(source_fd, &source_stat);
-        struct timespec times[2];
-        times[0] = source_stat.st_atim;
-        times[1] = source_stat.st_mtim;
-        utimensat(AT_FDCWD, dest_path, times, 0);
+
         sendfile(dest_fd, source_fd, NULL, source_entry->size);
         close(source_fd);
         close(dest_fd);
     }
     return;
 }
+
 
 /*!
  * @brief make_list lists files in a location (it recurses in directories)
@@ -159,8 +160,14 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry = get_next_entry(dir);
+    char path[1024]; // Assurez-vous que ce chemin est suffisamment grand.
+
+    struct stat statbuf;
+
     while (entry != NULL && strcmp(entry->d_name, "..") != 0) {
         printf("Entry : %s\n", entry->d_name);
+        snprintf(path, sizeof(path), "%s/%s", dir, entry->d_name);
+
 
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             printf("Ajout de %s\n", entry->d_name);
@@ -169,15 +176,17 @@ void make_list(files_list_t *list, char *target) {
                 printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
                 return;
             }
-            if (entry->d_type == DT_DIR) {
-                printf("Dossier\n");
-                char *new_target = malloc(strlen(target) + strlen(entry->d_name) + 2);
-                strcpy(new_target, target);
-                strcat(new_target, "/");
-                strcat(new_target, entry->d_name);
-                printf("Nouvelle cible : %s\n", new_target);
-                make_list(list, new_target);
+            if (stat(path, &statbuf) != -1) {
+                if (S_ISDIR(statbuf.st_mode)) {
+                    printf("Dossier\n");
+                    char *new_target = malloc(strlen(target) + strlen(entry->d_name) + 2);
+                    strcpy(new_target, target);
+                    strcat(new_target, "/");
+                    strcat(new_target, entry->d_name);
+                    printf("Nouvelle cible : %s\n", new_target);
+                    make_list(list, new_target);                }
             }
+
         }
         entry = get_next_entry(dir);
     }
