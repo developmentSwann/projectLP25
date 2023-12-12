@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <utility.h>
 #include "files-list.h"
+#include "defines.h"
+#include "utility.h"
+#include <stdlib.h>
 
 /*!
  * @brief get_file_stats gets all of the required information for a file (inc. directories)
@@ -54,9 +57,54 @@ int get_file_stats(files_list_entry_t *entry) {
  * @return -1 in case of error, 0 else
  * Use libcrypto functions from openssl/evp.h
  */
+
 int compute_file_md5(files_list_entry_t *entry) {
+    unsigned char digest[16];
+    char mdString[33];
+    int i;
+    FILE *inFile = fopen(entry->path_and_name, "rb");
+    if (!inFile) {
+        return -1;
+    }
 
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+    if(mdctx == NULL) {
+        fclose(inFile);
+        return -1;
+    }
 
+    if(1 != EVP_DigestInit_ex(mdctx, EVP_md5(), NULL)) {
+        EVP_MD_CTX_free(mdctx);
+        fclose(inFile);
+        return -1;
+    }
+
+    unsigned char data[1024];
+    int bytes;
+    while((bytes = fread(data, 1, 1024, inFile)) != 0) {
+        if(1 != EVP_DigestUpdate(mdctx, data, bytes)) {
+            EVP_MD_CTX_free(mdctx);
+            fclose(inFile);
+            return -1;
+        }
+    }
+
+    if(1 != EVP_DigestFinal_ex(mdctx, digest, NULL)) {
+        EVP_MD_CTX_free(mdctx);
+        fclose(inFile);
+        return -1;
+    }
+
+    for(i = 0; i < 16; i++) {
+        sprintf(&mdString[i*2], "%02x", (unsigned int)digest[i]);
+    }
+
+    strcpy(entry->md5sum, mdString);
+
+    EVP_MD_CTX_free(mdctx);
+    fclose(inFile);
+
+    return 0;
 }
 
 /*!
@@ -80,10 +128,16 @@ bool directory_exists(char *path_to_dir) {
  * Hint: try to open a file in write mode in the target directory.
  */
 bool is_directory_writable(char *path_to_dir) {
-    FILE *fd = fopen(path_to_dir, "w");
-    if (fd == NULL) {
+    char *test_file = "/test.txt";
+    char *path = malloc(strlen(path_to_dir) + strlen(test_file) + 1);
+    strcpy(path, path_to_dir);
+    strcat(path, test_file);
+    int fd = open(path, O_WRONLY | O_CREAT, 0666);
+    if (fd < 0) {
         return false;
     }
-    fclose(fd);
+    close(fd);
+    unlink(path);
+    free(path);
     return true;
 }
