@@ -139,6 +139,10 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
         struct stat source_stat;
         fstat(source_fd, &source_stat);
 
+        //On accorde les droits
+        fchmod(dest_fd, source_entry->mode);
+
+
         sendfile(dest_fd, source_fd, NULL, source_entry->size);
         close(source_fd);
         close(dest_fd);
@@ -189,9 +193,8 @@ void make_list(files_list_t *list, char *target) {
 
 
             }
-
-
         entry = get_next_entry(dir);
+
     }
     closedir(dir);
     return;
