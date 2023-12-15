@@ -110,7 +110,9 @@ void  make_files_list(files_list_t *list, char *target_path) {
  * @param the_config is a pointer to the program configuration
  * @param msg_queue is the id of the MQ used for communication
  */
+
 void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, configuration_t *the_config, int msg_queue) {
+
 
 }
 
@@ -170,7 +172,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
  * @param list is a pointer to the list that will be built
  * @param target is the target dir whose content must be listed
  */
-void make_list(files_list_t *list, char *target) {
+ void make_list(files_list_t *list, char *target) {
     DIR *dir = open_dir(target);
     if (dir == NULL) {
         printf("Impossible d'ouvrir le dossier %s\n", target);
