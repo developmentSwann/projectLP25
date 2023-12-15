@@ -89,7 +89,7 @@ int make_process(process_context_t *p_context, process_loop_t func, void *parame
 /*!
  * @brief lister_process_loop is the lister process function (@see make_process)
  * @param parameters is a pointer to its parameters, to be cast to a lister_configuration_t
- */
+
 void lister_process_loop(void *parameters) {
     lister_configuration_t *config = (lister_configuration_t *) parameters;
     files_list_t *list = malloc(sizeof(files_list_t));
@@ -108,7 +108,7 @@ void lister_process_loop(void *parameters) {
 /*!
  * @brief analyzer_process_loop is the analyzer process function
  * @param parameters is a pointer to its parameters, to be cast to an analyzer_configuration_t
- */
+
 void analyzer_process_loop(void *parameters) {
     analyzer_configuration_t *config = (analyzer_configuration_t *) parameters;
     files_list_entry_t *entry = malloc(sizeof(files_list_entry_t));
