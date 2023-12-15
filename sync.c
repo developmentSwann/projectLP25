@@ -39,37 +39,30 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         make_files_list(src_list, the_config->source);
         make_files_list(dst_list, the_config->destination);
     }
-    //On affiche les listes
     printf("Liste source :\n");
     display_files_list(src_list);
 
     printf("Liste destination :\n");
     display_files_list(dst_list);
-    //On compare les listes
     files_list_entry_t *src_cursor = src_list->head;
     while (src_cursor) {
         files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
 
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
-            //On modifie le chemin du fichier pour qu'il soit dans la destination exemple :
-            //source : /home/etudiant/Documents/ProjetLP25/sources/file.txt
-            //path : /home/etudiant/Documents/ProjetLP25/destination/file.txt
+
             char *new_path = malloc(sizeof(char) * (strlen(src_cursor->path_and_name) + strlen(the_config->destination) + 1));
             strcpy(new_path, the_config->destination);
             strcat(new_path, src_cursor->path_and_name + strlen(the_config->source));
             strcpy(src_cursor->path_and_name, new_path);
-            //On ajoute le fichier a la liste des fichiers a copier
             add_entry_to_tail(diff_list, src_cursor);
         }
 
         src_cursor = src_cursor->next;
         printf("Fichier source suivant : %s\n", src_cursor->path_and_name);
     }
-    //On affiche la liste des fichiers a copier
     printf("Liste des fichiers a copier :\n");
     display_files_list(diff_list);
-    //On copie les fichiers
     files_list_entry_t *diff_cursor = diff_list->head;
     while (diff_cursor) {
         copy_entry_to_destination(diff_cursor, the_config);
@@ -133,27 +126,51 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
-    if(source_entry->entry_type == DOSSIER){
-        mkdir(source_entry->path_and_name, source_entry->mode);
-    }else {
-        int fd_src = open(source_entry->path_and_name, O_RDONLY);
-        int fd_dst = open(source_entry->path_and_name, O_WRONLY | O_CREAT, source_entry->mode);
-        struct stat statbuf;
-        if (stat(source_entry->path_and_name, &statbuf) == -1) {
-            printf("Impossible de recuperer les informations du fichier %s\n", source_entry->path_and_name);
-            return;
-        }
-
-        if (fd_src == -1 || fd_dst == -1) {
-            printf("Impossible d'ouvrir le fichier %s\n", source_entry->path_and_name);
-            return;
-        }
-
-
+    if (source_entry == NULL || the_config == NULL) {
+        return;
     }
 
-}
+    char dest_path[260];
+    snprintf(dest_path, sizeof(dest_path), "%s/%s", the_config->destination, source_entry->path_and_name + strlen(the_config->source));
 
+    if (source_entry->entry_type == DOSSIER) {
+        mkdir(dest_path, source_entry->mode);
+    } else {
+        int fd_src = open(source_entry->path_and_name, O_RDONLY);
+        if (fd_src == -1) {
+            printf("Impossible d'ouvrir le fichier source %s\n", source_entry->path_and_name);
+            return;
+        }
+
+        int fd_dst = open(dest_path, O_WRONLY | O_CREAT | O_TRUNC, source_entry->mode);
+        if (fd_dst == -1) {
+            printf("Impossible de créer le fichier destination %s\n", dest_path);
+            close(fd_src);
+            return;
+        }
+
+        struct stat statbuf;
+        if (fstat(fd_src, &statbuf) == -1) {
+            printf("Impossible de recuperer les informations du fichier %s\n", source_entry->path_and_name);
+            close(fd_src);
+            close(fd_dst);
+            return;
+        }
+
+        ssize_t bytes_sent = sendfile(fd_dst, fd_src, NULL, statbuf.st_size);
+        if (bytes_sent != statbuf.st_size) {
+            printf("Erreur lors de la copie du fichier %s\n", source_entry->path_and_name);
+        }
+
+        close(fd_src);
+        close(fd_dst);
+
+        struct timespec times[2];
+        times[0] = source_entry->mtime;
+        times[1] = source_entry->mtime;
+        utimensat(0, dest_path, times, 0);
+    }
+}
 
 /*!
  * @brief make_list lists files in a location (it recurses in directories)
