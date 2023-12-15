@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <sys/stat.h>
 
 #include <stdio.h>
 #include "file-properties.h"
@@ -29,51 +29,67 @@ void clear_files_list(files_list_t *list) {
  *  @param file_path the full path (from the root of the considered tree) of the file
  *  @return a pointer to the added element if success, NULL else (out of memory)
  */
+
+
 files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     if (list == NULL || file_path == NULL) {
         return NULL;
     }
     files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
-    strcpy(new_entry->path_and_name, file_path);
-
-    if (stat(file_path, &new_entry->path_and_name) == -1) {
+    if (new_entry == NULL) {
         return NULL;
     }
+    strncpy(new_entry->path_and_name, file_path, sizeof(new_entry->path_and_name) - 1);
+    new_entry->path_and_name[sizeof(new_entry->path_and_name) - 1] = '\0'; // Ensure null termination
+
+    struct stat statbuf;
+    if (stat(file_path, &statbuf) == -1) {
+        free(new_entry);
+        return NULL;
+    }
+
+    new_entry->mtime = statbuf.st_mtim;
+    new_entry->size = statbuf.st_size;
+    new_entry->mode = statbuf.st_mode;
+    new_entry->entry_type = S_ISDIR(statbuf.st_mode) ? DOSSIER : FICHIER;
+    memset(new_entry->md5sum, 0, sizeof(new_entry->md5sum)); // Initialize md5sum to zero
+
     new_entry->next = NULL;
     new_entry->prev = NULL;
+
     if (list->head == NULL) {
         list->head = new_entry;
         list->tail = new_entry;
-        return new_entry;
-    }
-    files_list_entry_t *cursor = list->head;
-    while (cursor) {
-        if (strcmp(cursor->path_and_name, file_path) == 0) {
-            return NULL;
-        }
-        if (strcmp(cursor->path_and_name, file_path) > 0) {
-            if (cursor->prev == NULL) {
-                cursor->prev = new_entry;
-                new_entry->next = cursor;
-                list->head = new_entry;
+    } else {
+        files_list_entry_t *cursor = list->head;
+        while (cursor) {
+            if (strcmp(cursor->path_and_name, file_path) == 0) {
+                free(new_entry);
+                return NULL;
+            }
+            if (strcmp(cursor->path_and_name, file_path) > 0) {
+                if (cursor->prev == NULL) {
+                    cursor->prev = new_entry;
+                    new_entry->next = cursor;
+                    list->head = new_entry;
+                } else {
+                    cursor->prev->next = new_entry;
+                    new_entry->prev = cursor->prev;
+                    new_entry->next = cursor;
+                    cursor->prev = new_entry;
+                }
                 return new_entry;
             }
-            cursor->prev->next = new_entry;
-            new_entry->prev = cursor->prev;
-            cursor->prev = new_entry;
-            new_entry->next = cursor;
-            return new_entry;
+            if (cursor->next == NULL) {
+                cursor->next = new_entry;
+                new_entry->prev = cursor;
+                list->tail = new_entry;
+                return new_entry;
+            }
+            cursor = cursor->next;
         }
-        if (cursor->next == NULL) {
-            cursor->next = new_entry;
-            new_entry->prev = cursor;
-            list->tail = new_entry;
-            return new_entry;
-        }
-        cursor = cursor->next;
     }
-    return NULL;
-
+    return new_entry;
 }
 
 /*!
