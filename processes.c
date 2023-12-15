@@ -52,8 +52,14 @@ int prepare(configuration_t *the_config, process_context_t *p_context) {
         for (int i = 0; i < the_config->processes_count; i++) {
             analyzer_configuration_t *source_analyzer_config = malloc(sizeof(analyzer_configuration_t));
             source_analyzer_config->my_recipient_id = SOURCE_ANALYZER_ID;
-            source
-
+            source_analyzer_config->my_receiver_id = SOURCE_LISTER_ID;
+            source_analyzer_config->mq_key = p_context->shared_key;
+            source_analyzer_config->use_md5 = the_config->uses_md5;
+            p_context->source_analyzers_pids[i] = make_process(p_context, analyzer_process_loop, source_analyzer_config);
+            if (p_context->source_analyzers_pids[i] < 0) {
+                perror("make_process");
+                return -1;
+            }
         }
     }
     return 0;
