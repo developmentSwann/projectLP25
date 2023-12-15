@@ -126,27 +126,25 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
-    char *dest_path = malloc(strlen(the_config->destination) + strlen(source_entry->path_and_name) + 2);
-    strcpy(dest_path, the_config->destination);
-    strcat(dest_path, "/");
-    strcat(dest_path, source_entry->path_and_name);
-    printf("Destination : %s\n", dest_path);
-    if (source_entry->entry_type == DOSSIER) {
-        mkdir(dest_path, source_entry->mode);
-        chdir(dest_path);
+    if(source_entry->entry_type == DOSSIER){
+        mkdir(source_entry->path_and_name, source_entry->mode);
     }else {
-        int source_fd = open(source_entry->path_and_name, O_RDONLY);
-        int dest_fd = open(dest_path, O_WRONLY | O_CREAT, source_entry->mode);
-        struct stat source_stat;
-        fstat(source_fd, &source_stat);
+        int fd_src = open(source_entry->path_and_name, O_RDONLY);
+        int fd_dst = open(source_entry->path_and_name, O_WRONLY | O_CREAT, source_entry->mode);
+        struct stat statbuf;
+        if (stat(source_entry->path_and_name, &statbuf) == -1) {
+            printf("Impossible de recuperer les informations du fichier %s\n", source_entry->path_and_name);
+            return;
+        }
 
-        //On accorde les droits
-        chmod( dest_path, source_entry->mode);
-        sendfile(dest_fd, source_fd, NULL, source_entry->size);
-        close(source_fd);
-        close(dest_fd);
+        if (fd_src == -1 || fd_dst == -1) {
+            printf("Impossible d'ouvrir le fichier %s\n", source_entry->path_and_name);
+            return;
+        }
+
+
     }
-    return;
+
 }
 
 
@@ -165,19 +163,19 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry;
-    char path[PATH_MAX]; // Using PATH_MAX for path length
+    char path[260];
 
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
-            snprintf(path, sizeof(path), "%s/%s", target, entry->d_name); // Safely constructing path
+            snprintf(path, sizeof(path), "%s/%s", target, entry->d_name);
             struct stat statbuf;
             if (stat(path, &statbuf) == -1) {
-                continue; // Skip if stat fails
+                continue;
             }
 
             files_list_entry_t *entry_to_add = add_file_entry(list, path);
             if (!entry_to_add) {
-                continue; // Skip if entry was not added
+                continue;
             }
 
             if (S_ISDIR(statbuf.st_mode)) {

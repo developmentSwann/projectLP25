@@ -53,12 +53,11 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     new_entry->size = statbuf.st_size;
     new_entry->mode = statbuf.st_mode;
     new_entry->entry_type = S_ISDIR(statbuf.st_mode) ? DOSSIER : FICHIER;
-    memset(new_entry->md5sum, 0, sizeof(new_entry->md5sum)); // Initialize md5sum to zero
+    memset(new_entry->md5sum, 0, sizeof(new_entry->md5sum));
 
     new_entry->next = NULL;
     new_entry->prev = NULL;
 
-    // Simplified insertion logic
     if (list->head == NULL) {
         list->head = new_entry;
         list->tail = new_entry;
