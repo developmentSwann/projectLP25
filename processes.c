@@ -27,26 +27,35 @@ int prepare(configuration_t *the_config, process_context_t *p_context) {
  * @return the PID of the child process (it never returns in the child process)
  */
 int make_process(process_context_t *p_context, process_loop_t func, void *parameters) {
-        pid_t pid = fork(); // Create a new process
-
+        pid_t pid = fork();
         if (pid < 0) {
-            // Fork failed
+            // Fonction fork a echoue.
             return -1;
         } else if (pid == 0) {
-            // We are in the child process
-            func(parameters); // Execute the function
-            exit(0); // End the child process
+            // On est dans le processus fils et on execute la fonction.
+            func(parameters);
+            exit(0);
         } else {
-            // We are in the parent process
-            return pid; // Return the child's PID
+            // On est dans le processus parents et on retourne le pid du fils.
+            return pid;
         }
 }
-
 /*!
  * @brief lister_process_loop is the lister process function (@see make_process)
  * @param parameters is a pointer to its parameters, to be cast to a lister_configuration_t
  */
 void lister_process_loop(void *parameters) {
+    lister_configuration_t *config = (lister_configuration_t *) parameters;
+    files_list_t *list = malloc(sizeof(files_list_t));
+    make_files_list(list, config->path); // TODO
+    files_list_entry_t *cursor = list->head;
+    while (cursor) {
+        printf("%s\n", cursor->path_and_name);
+        cursor = cursor->next;
+    }
+    clear_files_list(list);
+    free(list);
+
 
 }
 
@@ -55,6 +64,7 @@ void lister_process_loop(void *parameters) {
  * @param parameters is a pointer to its parameters, to be cast to an analyzer_configuration_t
  */
 void analyzer_process_loop(void *parameters) {
+
 }
 
 /*!
@@ -63,9 +73,5 @@ void analyzer_process_loop(void *parameters) {
  * @param p_context is a pointer to the processes context
  */
 void clean_processes(configuration_t *the_config, process_context_t *p_context) {
-    // Do nothing if not parallel
-    // Send terminate
-    // Wait for responses
-    // Free allocated memory
-    // Free the MQ
+
 }
