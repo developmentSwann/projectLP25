@@ -27,7 +27,19 @@ int prepare(configuration_t *the_config, process_context_t *p_context) {
  * @return the PID of the child process (it never returns in the child process)
  */
 int make_process(process_context_t *p_context, process_loop_t func, void *parameters) {
+        pid_t pid = fork(); // Create a new process
 
+        if (pid < 0) {
+            // Fork failed
+            return -1;
+        } else if (pid == 0) {
+            // We are in the child process
+            func(parameters); // Execute the function
+            exit(0); // End the child process
+        } else {
+            // We are in the parent process
+            return pid; // Return the child's PID
+        }
 }
 
 /*!
