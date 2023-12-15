@@ -50,11 +50,6 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
 
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
-
-            char *new_path = malloc(sizeof(char) * (strlen(src_cursor->path_and_name) + strlen(the_config->destination) + 1));
-            strcpy(new_path, the_config->destination);
-            strcat(new_path, src_cursor->path_and_name + strlen(the_config->source));
-            strcpy(src_cursor->path_and_name, new_path);
             add_entry_to_tail(diff_list, src_cursor);
         }
 
@@ -136,34 +131,30 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
     if (source_entry->entry_type == DOSSIER) {
         mkdir(dest_path, source_entry->mode);
     } else {
-        int fd_src = open(source_entry->path_and_name, O_RDONLY);
-        if (fd_src == -1) {
+        int fileSrc = open(source_entry->path_and_name, O_RDONLY);
+        if (fileSrc == -1) {
             printf("Impossible d'ouvrir le fichier source %s\n", source_entry->path_and_name);
             return;
         }
 
-        int fd_dst = open(dest_path, O_WRONLY | O_CREAT | O_TRUNC, source_entry->mode);
-        if (fd_dst == -1) {
+        int fileDst = open(dest_path, O_WRONLY | O_CREAT | O_TRUNC, source_entry->mode);
+        if (fileDst == -1) {
             printf("Impossible de créer le fichier destination %s\n", dest_path);
-            close(fd_src);
+            close(fileSrc);
             return;
         }
 
         struct stat statbuf;
-        if (fstat(fd_src, &statbuf) == -1) {
+        if (fstat(fileSrc, &statbuf) == -1) {
             printf("Impossible de recuperer les informations du fichier %s\n", source_entry->path_and_name);
-            close(fd_src);
-            close(fd_dst);
+            close(fileSrc);
+            close(fileDst);
             return;
         }
 
-        ssize_t bytes_sent = sendfile(fd_dst, fd_src, NULL, statbuf.st_size);
-        if (bytes_sent != statbuf.st_size) {
-            printf("Erreur lors de la copie du fichier %s\n", source_entry->path_and_name);
-        }
-
-        close(fd_src);
-        close(fd_dst);
+        sendfile(fileDst, fileSrc, NULL, statbuf.st_size);
+        close(fileSrc);
+        close(fileDst);
 
         struct timespec times[2];
         times[0] = source_entry->mtime;
