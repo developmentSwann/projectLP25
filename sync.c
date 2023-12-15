@@ -170,39 +170,34 @@ void make_list(files_list_t *list, char *target) {
 
     printf("Test1");
     while (entry != NULL ) {
-        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0){
+        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
             struct stat statbuf;
             printf("Entry : %s\n", entry->d_name);
-                strcpy(path, target);
-                strcat(path, "/");
-                strcat(path, entry->d_name);
+            strcpy(path, target);
+            strcat(path, "/");
+            strcat(path, entry->d_name);
 
 
-                printf("Ajout de %s\n", entry->d_name);
-
+            printf("Ajout de %s\n", entry->d_name);
+            //On check si c'est un dossier
+            if (entry->d_type == DT_DIR) {
+                printf("C'est un dossier\n");
                 files_list_entry_t *new_entry = add_file_entry(list, path);
-                add_entry_to_tail(list, new_entry);
-                printf("Droits : %d\n", new_entry->mode);
-                if (new_entry == NULL) {
-                    printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
-                    return;
-                }
-                if (stat(path, &statbuf) != -1) {
-                    if (S_ISDIR(statbuf.st_mode)) {
-                        new_entry->entry_type = DOSSIER;
-                        add_entry_to_tail(list, new_entry);
-                        make_list(list, path);
-                    }
-                }
-
+                new_entry->entry_type = DOSSIER;
+                new_entry->mode = statbuf.st_mode;
+                make_list(list, path);
+            } else {
+                printf("C'est un fichier\n");
+                files_list_entry_t *new_entry = add_file_entry(list, path);
+                new_entry->entry_type = FICHIER;
+                new_entry->mode = statbuf.st_mode;
 
             }
+        }
         entry = get_next_entry(dir);
-
     }
     closedir(dir);
     return;
-
 }
 
 
