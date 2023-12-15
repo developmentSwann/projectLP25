@@ -110,6 +110,30 @@ void lister_process_loop(void *parameters) {
  * @param parameters is a pointer to its parameters, to be cast to an analyzer_configuration_t
  */
 void analyzer_process_loop(void *parameters) {
+    analyzer_configuration_t *config = (analyzer_configuration_t *) parameters;
+    files_list_entry_t *entry = malloc(sizeof(files_list_entry_t));
+    while (true) {
+        if (msgrcv(config->mq_key, entry, sizeof(files_list_entry_t), config->my_receiver_id, 0) < 0) {
+            perror("msgrcv");
+            exit(1);
+        }
+        if (entry->entry_type == FICHIER) {
+            if (get_file_stats(entry) < 0) {
+                perror("get_file_stats");
+                exit(1);
+            }
+            if (config->use_md5) {
+                if (compute_file_md5(entry) < 0) {
+                    perror("compute_file_md5");
+                    exit(1);
+                }
+            }
+        }
+        if (send_analyze_file_response(config->mq_key, config->my_recipient_id, entry) < 0) {
+            perror("send_analyze_file_response");
+            exit(1);
+        }
+    }
 
 }
 
