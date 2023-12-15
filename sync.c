@@ -52,6 +52,13 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
 
         if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
             printf("Fichier different\n");
+            //On modifie le chemin du fichier pour qu'il soit dans la destination exemple :
+            //source : /home/etudiant/Documents/ProjetLP25/sources/file.txt
+            //path : /home/etudiant/Documents/ProjetLP25/destination/file.txt
+            char *new_path = malloc(sizeof(char) * (strlen(src_cursor->path_and_name) + strlen(the_config->destination) + 1));
+            strcpy(new_path, the_config->destination);
+            strcat(new_path, src_cursor->path_and_name + strlen(the_config->source));
+            strcpy(src_cursor->path_and_name, new_path);
             //On ajoute le fichier a la liste des fichiers a copier
             add_entry_to_tail(diff_list, src_cursor);
         }
