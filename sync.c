@@ -167,7 +167,13 @@ void make_list(files_list_t *list, char *target) {
 
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
-            snprintf(path, sizeof(path), "%s/%s", target, entry->d_name);
+            //On créer le chemin exemple :
+            //source : /home/etudiant/Documents/ProjetLP25/sources/file.txt
+            //path : /home/etudiant/Documents/ProjetLP25/destination/file.txt
+            strcpy(path, target);
+            strcat(path, "/");
+            strcat(path, entry->d_name);
+
             struct stat statbuf;
             if (stat(path, &statbuf) == -1) {
                 continue;
