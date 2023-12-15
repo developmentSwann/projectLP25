@@ -179,18 +179,16 @@ void make_list(files_list_t *list, char *target) {
 
 
             printf("Ajout de %s\n", entry->d_name);
-            //On check si c'est un dossier
-            if (entry->d_type == DT_DIR) {
+            //On check si c'est un dossier (avec stat)
+            if (stat(path, &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
                 printf("C'est un dossier\n");
-                files_list_entry_t *new_entry = add_file_entry(list, path);
-                new_entry->entry_type = DOSSIER;
-                new_entry->mode = statbuf.st_mode;
+                files_list_entry_t *entry_to_add = add_file_entry(list, path);
+                entry_to_add->entry_type = DOSSIER;
                 make_list(list, path);
-            } else {
+            }else {
                 printf("C'est un fichier\n");
-                files_list_entry_t *new_entry = add_file_entry(list, path);
-                new_entry->entry_type = FICHIER;
-                new_entry->mode = statbuf.st_mode;
+                files_list_entry_t *entry_to_add = add_file_entry(list, path);
+                entry_to_add->entry_type = FICHIER;
 
             }
         }
