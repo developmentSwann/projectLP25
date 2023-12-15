@@ -143,6 +143,52 @@ void analyzer_process_loop(void *parameters) {
  * @param p_context is a pointer to the processes context
  */
 void clean_processes(configuration_t *the_config, process_context_t *p_context) {
+        simple_command_t terminate_command;
+        terminate_command.mtype = MSG_TYPE_TO_SOURCE_LISTER;
+        terminate_command.message = COMMAND_CODE_TERMINATE;
 
+        // Send terminate command to source lister
+        if (msgsnd(p_context->message_queue_id, &terminate_command, sizeof(simple_command_t), 0) == -1) {
+            perror("msgsnd");
+            exit(1);
+        }
 
+        // Wait for source lister to terminate
+        waitpid(p_context->source_lister_pid, NULL, 0);
+
+        // Update the message type for destination lister
+        terminate_command.mtype = MSG_TYPE_TO_DESTINATION_LISTER;
+
+        // Send terminate command to destination lister
+        if (msgsnd(p_context->message_queue_id, &terminate_command, sizeof(simple_command_t), 0) == -1) {
+            perror("msgsnd");
+            exit(1);
+        }
+
+        // Wait for destination lister to terminate
+        waitpid(p_context->destination_lister_pid, NULL, 0);
+
+        // Send terminate command to all source analyzers
+        terminate_command.mtype = MSG_TYPE_TO_SOURCE_ANALYZERS;
+        for (int i = 0; i < the_config->processes_count; i++) {
+            if (msgsnd(p_context->message_queue_id, &terminate_command, sizeof(simple_command_t), 0) == -1) {
+                perror("msgsnd");
+                exit(1);
+            }
+
+            // Wait for source analyzer to terminate
+            waitpid(p_context->source_analyzers_pids[i], NULL, 0);
+        }
+
+        // Send terminate command to all destination analyzers
+        terminate_command.mtype = MSG_TYPE_TO_DESTINATION_ANALYZERS;
+        for (int i = 0; i < the_config->processes_count; i++) {
+            if (msgsnd(p_context->message_queue_id, &terminate_command, sizeof(simple_command_t), 0) == -1) {
+                perror("msgsnd");
+                exit(1);
+            }
+
+            // Wait for destination analyzer to terminate
+            waitpid(p_context->destination_analyzers_pids[i], NULL, 0);
+        }
 }
