@@ -181,6 +181,7 @@ void make_list(files_list_t *list, char *target) {
                 printf("Ajout de %s\n", entry->d_name);
 
                 files_list_entry_t *new_entry = add_file_entry(list, path);
+                add_entry_to_tail(list, new_entry);
                 printf("Droits : %d\n", new_entry->mode);
                 if (new_entry == NULL) {
                     printf("Impossible d'ajouter l'entree %s\n", entry->d_name);
@@ -189,6 +190,7 @@ void make_list(files_list_t *list, char *target) {
                 if (stat(path, &statbuf) != -1) {
                     if (S_ISDIR(statbuf.st_mode)) {
                         new_entry->entry_type = DOSSIER;
+                        add_entry_to_tail(list, new_entry);
                         make_list(list, path);
                     }
                 }

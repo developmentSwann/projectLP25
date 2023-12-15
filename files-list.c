@@ -37,6 +37,7 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     if (new_entry == NULL) {
         return NULL;
     }
+
     strcpy(new_entry->path_and_name, file_path);
     if (stat(file_path, &new_entry->path_and_name) == -1) {
         return NULL;
