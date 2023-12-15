@@ -58,40 +58,37 @@ files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
     new_entry->next = NULL;
     new_entry->prev = NULL;
 
+    // Simplified insertion logic
     if (list->head == NULL) {
         list->head = new_entry;
         list->tail = new_entry;
     } else {
-        files_list_entry_t *cursor = list->head;
-        while (cursor) {
-            if (strcmp(cursor->path_and_name, file_path) == 0) {
-                free(new_entry);
-                return NULL;
-            }
-            if (strcmp(cursor->path_and_name, file_path) > 0) {
-                if (cursor->prev == NULL) {
-                    cursor->prev = new_entry;
-                    new_entry->next = cursor;
-                    list->head = new_entry;
-                } else {
-                    cursor->prev->next = new_entry;
-                    new_entry->prev = cursor->prev;
-                    new_entry->next = cursor;
-                    cursor->prev = new_entry;
-                }
-                return new_entry;
-            }
-            if (cursor->next == NULL) {
-                cursor->next = new_entry;
-                new_entry->prev = cursor;
-                list->tail = new_entry;
-                return new_entry;
-            }
-            cursor = cursor->next;
+        files_list_entry_t *current = list->head;
+        files_list_entry_t *prev = NULL;
+        while (current && strcmp(current->path_and_name, file_path) < 0) {
+            prev = current;
+            current = current->next;
+        }
+        if (current && strcmp(current->path_and_name, file_path) == 0) {
+            free(new_entry);
+            return NULL;
+        }
+        if (prev == NULL) {
+            list->head = new_entry;
+        } else {
+            prev->next = new_entry;
+        }
+        new_entry->prev = prev;
+        new_entry->next = current;
+        if (current == NULL) {
+            list->tail = new_entry;
+        } else {
+            current->prev = new_entry;
         }
     }
     return new_entry;
 }
+
 
 /*!
  * @brief add_entry_to_tail adds an entry directly to the tail of the list

@@ -164,45 +164,30 @@ void make_list(files_list_t *list, char *target) {
         return;
     }
 
-    struct dirent *entry = get_next_entry(dir);
+    struct dirent *entry;
+    char path[PATH_MAX]; // Using PATH_MAX for path length
 
-    char *path = malloc(strlen(target) + 4096);
-
-    printf("Test1");
-    while (entry != NULL ) {
-        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0  && strcmp(entry->d_name, " ") != 0) {
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
+            snprintf(path, sizeof(path), "%s/%s", target, entry->d_name); // Safely constructing path
             struct stat statbuf;
-            printf("Entry : %s\n", entry->d_name);
-            strcpy(path, target);
-            strcat(path, "/");
-            strcat(path, entry->d_name);
+            if (stat(path, &statbuf) == -1) {
+                continue; // Skip if stat fails
+            }
 
+            files_list_entry_t *entry_to_add = add_file_entry(list, path);
+            if (!entry_to_add) {
+                continue; // Skip if entry was not added
+            }
 
-            printf("Ajout de %s\n", entry->d_name);
-            //On check si c'est un dossier (avec stat)
-            if (stat(path, &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
-                printf("C'est un dossier\n");
-                files_list_entry_t *entry_to_add = add_file_entry(list, path);
-                entry_to_add->entry_type = DOSSIER;
-                //On affiche la liste :
-                printf("Liste :\n");
-                display_files_list(list);
-
+            if (S_ISDIR(statbuf.st_mode)) {
                 make_list(list, path);
-            }else {
-                printf("C'est un fichier\n");
-                files_list_entry_t *entry_to_add = add_file_entry(list, path);
-                entry_to_add->entry_type = FICHIER;
-                printf("Liste :\n");
-                display_files_list(list);
-
             }
         }
-        entry = get_next_entry(dir);
     }
     closedir(dir);
-    return;
 }
+
 
 
 
