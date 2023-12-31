@@ -36,7 +36,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     if (the_config->is_parallel) {
         //Si on est en mode parallele
         // Créer les listes de fichiers en parallèle
-        make_files_lists_parallel(src_list, dst_list, the_config, p_context->mq_id);
+        make_files_lists_parallel(src_list, dst_list, the_config, p_context->message_queue_id);
 
     } else {
         char *src_path = the_config->source;

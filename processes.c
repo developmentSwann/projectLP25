@@ -20,24 +20,22 @@ int prepare(configuration_t *the_config, process_context_t *p_context) {
         return 0;
     }
     //On cree la file de message
-    p_context->mq_id = msgget(IPC_PRIVATE, 0666 | IPC_CREAT);
-    if (p_context->mq_id < 0) {
+    p_context->message_queue_id = msgget(IPC_PRIVATE, IPC_CREAT | 0666);
+    if (p_context->message_queue_id < 0) {
         perror("msgget");
         return -1;
     }
     //On cree les processus
-    p_context->lister_pid = make_process(p_context, lister_process_loop, NULL);
-    if (p_context->lister_pid < 0) {
-        perror("make_process");
-        return -1;
-    }
-    // On cree le processus d'analyse
-    p_context->analyzer_pid = make_process(p_context, analyzer_process_loop, NULL);
-    if (p_context->analyzer_pid < 0) {
-        perror("make_process");
-        return -1;
+    p_context->source_lister_pid = make_process(p_context, lister_process_loop, NULL);
+    p_context->destination_lister_pid = make_process(p_context, lister_process_loop, NULL);
+    p_context->source_analyzers_pids = malloc(sizeof(pid_t) * the_config->processes_count);
+    p_context->destination_analyzers_pids = malloc(sizeof(pid_t) * the_config->processes_count);
+    for (int i = 0; i < the_config->processes_count; i++) {
+        p_context->source_analyzers_pids[i] = make_process(p_context, analyzer_process_loop, NULL);
+        p_context->destination_analyzers_pids[i] = make_process(p_context, analyzer_process_loop, NULL);
     }
     return 0;
+
 }
 
 /*!
