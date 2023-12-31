@@ -16,7 +16,28 @@
  * @return 0 if all went good, -1 else
  */
 int prepare(configuration_t *the_config, process_context_t *p_context) {
+    if (!the_config->is_parallel) {
+        return 0;
+    }
+    p_context->mq_id = msgget(IPC_PRIVATE, 0666 | IPC_CREAT);
+    if (p_context->mq_id < 0) {
+        perror("msgget");
+        return -1;
+    }
 
+    p_context->lister_pid = make_process(p_context, lister_process_loop, NULL);
+    if (p_context->lister_pid < 0) {
+        perror("make_process");
+        return -1;
+    }
+
+    p_context->analyzer_pid = make_process(p_context, analyzer_process_loop, NULL);
+    if (p_context->analyzer_pid < 0) {
+        perror("make_process");
+        return -1;
+    }
+
+    return 0;
 }
 
 /*!
@@ -27,6 +48,13 @@ int prepare(configuration_t *the_config, process_context_t *p_context) {
  * @return the PID of the child process (it never returns in the child process)
  */
 int make_process(process_context_t *p_context, process_loop_t func, void *parameters) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        func(parameters);
+        exit(0);
+    } else {
+        return pid;
+    }
 
 }
 
@@ -36,6 +64,7 @@ int make_process(process_context_t *p_context, process_loop_t func, void *parame
  */
 void lister_process_loop(void *parameters) {
 
+
 }
 
 /*!
@@ -43,6 +72,7 @@ void lister_process_loop(void *parameters) {
  * @param parameters is a pointer to its parameters, to be cast to an analyzer_configuration_t
  */
 void analyzer_process_loop(void *parameters) {
+
 }
 
 /*!
@@ -52,6 +82,9 @@ void analyzer_process_loop(void *parameters) {
  */
 void clean_processes(configuration_t *the_config, process_context_t *p_context) {
     // Do nothing if not parallel
+    if (!the_config->is_parallel) {
+        return;
+    }
     // Send terminate
     // Wait for responses
     // Free allocated memory
