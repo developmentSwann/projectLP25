@@ -15,7 +15,9 @@
 #include <sys/msg.h>
 #include <dirent.h>
 #include <errno.h>
-
+#include <processes.h>
+#include <messages.h>
+#include <files-list.h>
 
 
 
@@ -32,7 +34,10 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
     files_list_t *diff_list;
 
     if (the_config->is_parallel) {
-        //TODO : Parallel
+        //Si on est en mode parallele
+        // Créer les listes de fichiers en parallèle
+        make_files_lists_parallel(src_list, dst_list, the_config, p_context->mq_id);
+
     } else {
         char *src_path = the_config->source;
         char *dst_path = the_config->destination;
@@ -63,6 +68,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         copy_entry_to_destination(diff_cursor, the_config);
         diff_cursor = diff_cursor->next;
     }
+
 
 }
 
@@ -110,7 +116,16 @@ void  make_files_list(files_list_t *list, char *target_path) {
  * @param msg_queue is the id of the MQ used for communication
  */
 void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, configuration_t *the_config, int msg_queue) {
+    // Initialisation des processus
+    process_context_t p_context;
+    prepare(the_config, &p_context);
 
+    // Création des processus pour répertoire source & destination
+    make_process(&p_context, lister_process_loop, src_list);
+    make_process(&p_context, lister_process_loop, dst_list);
+
+
+    clean_processes(the_config, &p_context);
 }
 
 /*!
