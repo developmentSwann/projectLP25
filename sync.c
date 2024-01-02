@@ -7,11 +7,17 @@
 #include <file-properties.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/sendfile.h>
 #include <unistd.h>
 #include <sys/msg.h>
-
-#include <stdio.h>
+#include <dirent.h>
+#include <errno.h>
+#include <processes.h>
+#include <messages.h>
+#include <files-list.h>
 
 /*!
  * @brief synchronize is the main function for synchronization
@@ -21,6 +27,47 @@
  * @param p_context is a pointer to the processes context
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
+    files_list_t *src_list;
+    files_list_t *dst_list;
+    files_list_t *diff_list;
+
+    if (the_config->is_parallel) {
+        //Si on est en mode parallele
+        // Créer les listes de fichiers en parallèle
+        make_files_lists_parallel(src_list, dst_list, the_config, p_context->message_queue_id);
+
+    } else {
+        char *src_path = the_config->source;
+        char *dst_path = the_config->destination;
+        make_files_list(src_list, src_path);
+        make_files_list(dst_list, dst_path);
+    }
+    printf("Liste source :\n");
+    display_files_list(src_list);
+
+    printf("Liste destination :\n");
+    display_files_list(dst_list);
+    files_list_entry_t *src_cursor = src_list->head;
+    while (src_cursor) {
+        files_list_entry_t *dst_entry = find_entry_by_name(dst_list, src_cursor->path_and_name, 0, 0);
+
+        if (dst_entry == NULL || mismatch(src_cursor, dst_entry, the_config->uses_md5)) {
+            printf("Fichier different\n");
+            add_entry_to_tail(diff_list, src_cursor);
+        }
+
+        src_cursor = src_cursor->next;
+        printf("Fichier source suivant : %s\n", src_cursor->path_and_name);
+    }
+    printf("Liste des fichiers a copier :\n");
+    display_files_list(diff_list);
+    files_list_entry_t *diff_cursor = diff_list->head;
+    while (diff_cursor) {
+        copy_entry_to_destination(diff_cursor, the_config);
+        diff_cursor = diff_cursor->next;
+    }
+
+
 }
 
 /*!
@@ -31,6 +78,22 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
  * @return true if both files are not equal, false else
  */
 bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
+    if (lhd->entry_type != rhd->entry_type) {
+        return true;
+    }
+    if (lhd->entry_type == DOSSIER) {
+        return false;
+    }
+    if (lhd->size != rhd->size) {
+        return true;
+    }
+    if (lhd->mtime.tv_sec != rhd->mtime.tv_sec) {
+        return true;
+    }
+    if (has_md5  && memcmp(lhd->md5sum, rhd->md5sum, sizeof(lhd->md5sum)) != 0) {
+        return true;
+    }
+    return false;
 }
 
 /*!
@@ -38,7 +101,9 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
  * @param list is a pointer to the list that will be built
  * @param target_path is the path whose files to list
  */
-void make_files_list(files_list_t *list, char *target_path) {
+void  make_files_list(files_list_t *list, char *target_path) {
+    make_list(list, target_path);
+    return;
 }
 
 /*!
@@ -49,6 +114,16 @@ void make_files_list(files_list_t *list, char *target_path) {
  * @param msg_queue is the id of the MQ used for communication
  */
 void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, configuration_t *the_config, int msg_queue) {
+    // Initialisation des processus
+    process_context_t p_context;
+    prepare(the_config, &p_context);
+
+    // Création des processus pour répertoire source & destination
+    make_process(&p_context, lister_process_loop, src_list);
+    make_process(&p_context, lister_process_loop, dst_list);
+
+
+    clean_processes(the_config, &p_context);
 }
 
 /*!
@@ -58,6 +133,40 @@ void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, c
  * Use sendfile to copy the file, mkdir to create the directory
  */
 void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t *the_config) {
+    if (source_entry == NULL || the_config == NULL) {
+        return;
+    }
+
+    char dest_path[260];
+    snprintf(dest_path, sizeof(dest_path), "%s/%s", the_config->destination, source_entry->path_and_name + strlen(the_config->source));
+
+    if (source_entry->entry_type == DOSSIER) {
+        mkdir(dest_path, source_entry->mode);
+    } else {
+        int fileSrc = open(source_entry->path_and_name, O_RDONLY);
+        if (fileSrc == -1) {
+            printf("Impossible d'ouvrir le fichier source %s\n", source_entry->path_and_name);
+            return;
+        }
+
+        int fileDst = open(dest_path, O_WRONLY | O_CREAT | O_TRUNC, source_entry->mode);
+        if (fileDst == -1) {
+            printf("Impossible de créer le fichier destination %s\n", dest_path);
+            close(fileSrc);
+            return;
+        }
+
+
+
+        sendfile(fileDst, fileSrc, NULL, source_entry->size);
+        close(fileSrc);
+        close(fileDst);
+
+        struct timespec times[2];
+        times[0] = source_entry->mtime;
+        times[1] = source_entry->mtime;
+        utimensat(0, dest_path, times, 0);
+    }
 }
 
 /*!
@@ -68,6 +177,38 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
  * @param target is the target dir whose content must be listed
  */
 void make_list(files_list_t *list, char *target) {
+    DIR *dir = open_dir(target);
+    if (dir == NULL) {
+        printf("Impossible d'ouvrir le dossier %s\n", target);
+        return;
+    }
+
+    struct dirent *entry;
+    char *path[260];
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
+
+            strcpy(*path, target);
+            strcat(*path, "/");
+            strcat(*path, entry->d_name);
+
+            struct stat statbuf;
+            if (stat(*path, &statbuf) == -1) {
+                continue;
+            }
+
+            files_list_entry_t *entry_to_add = add_file_entry(list, *path);
+            if (!entry_to_add) {
+                continue;
+            }
+
+            if (S_ISDIR(statbuf.st_mode)) {
+                make_list(list, *path);
+            }
+        }
+    }
+    closedir(dir);
 }
 
 /*!
@@ -76,6 +217,8 @@ void make_list(files_list_t *list, char *target) {
  * @return a pointer to a dir, NULL if it cannot be opened
  */
 DIR *open_dir(char *path) {
+    DIR *dir = opendir(path);
+    return dir;
 }
 
 /*!
@@ -85,4 +228,6 @@ DIR *open_dir(char *path) {
  * Relevant entries are all regular files and dir, except . and ..
  */
 struct dirent *get_next_entry(DIR *dir) {
+    struct dirent *entry = readdir(dir);
+    return entry;
 }

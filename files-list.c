@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include "file-properties.h"
 
@@ -25,58 +26,67 @@ void clear_files_list(files_list_t *list) {
  *  If the file already exists, it does nothing and returns 0
  *  @param list the list to add the file entry into
  *  @param file_path the full path (from the root of the considered tree) of the file
- *  @return 0 if success, -1 else (out of memory)
+ *  @return a pointer to the added element if success, NULL else (out of memory)
  */
-files_list_entry_t *add_file_entry(files_list_t *list, const char *file_path) {
+
+
+files_list_entry_t *add_file_entry(files_list_t *list, char *file_path) {
+    if (list == NULL || file_path == NULL) {
+        return NULL;
+    }
     files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
     if (new_entry == NULL) {
         return NULL;
     }
+    strncpy(new_entry->path_and_name, file_path, sizeof(new_entry->path_and_name) - 1);
+    new_entry->path_and_name[sizeof(new_entry->path_and_name) - 1] = '\0'; // Ensure null termination
 
-    strcpy(new_entry->path_and_name, file_path);
-
-    if (get_file_stats(new_entry) == -1) {
+    struct stat statbuf;
+    if (stat(file_path, &statbuf) == -1) {
         free(new_entry);
         return NULL;
     }
 
+    new_entry->mtime.tv_sec = statbuf.st_mtime;
+    new_entry->mtime.tv_nsec = statbuf.st_ctime;
+    new_entry->size = statbuf.st_size;
+    new_entry->mode = statbuf.st_mode;
+    new_entry->entry_type = S_ISDIR(statbuf.st_mode) ? DOSSIER : FICHIER;
+    memset(new_entry->md5sum, 0, sizeof(new_entry->md5sum));
+
+    new_entry->next = NULL;
+    new_entry->prev = NULL;
+
     if (list->head == NULL) {
         list->head = new_entry;
         list->tail = new_entry;
-        new_entry->prev = NULL;
-        new_entry->next = NULL;
-        return new_entry;
-    }
-
-    files_list_entry_t *cursor = list->head;
-    while (cursor) {
-        int compare_result = strcmp(cursor->path_and_name, file_path);
-        if (compare_result == 0) {
+    } else {
+        files_list_entry_t *current = list->head;
+        files_list_entry_t *prev = NULL;
+        while (current && strcmp(current->path_and_name, file_path) < 0) {
+            prev = current;
+            current = current->next;
+        }
+        if (current && strcmp(current->path_and_name, file_path) == 0) {
             free(new_entry);
-            return cursor;
+            return NULL;
         }
-        if (compare_result > 0) {
-            if (cursor->prev) {
-                cursor->prev->next = new_entry;
-            } else {
-                list->head = new_entry;
-            }
-            new_entry->prev = cursor->prev;
-            new_entry->next = cursor;
-            cursor->prev = new_entry;
-            return new_entry;
+        if (prev == NULL) {
+            list->head = new_entry;
+        } else {
+            prev->next = new_entry;
         }
-        if (cursor->next == NULL) {
-            cursor->next = new_entry;
-            new_entry->prev = cursor;
+        new_entry->prev = prev;
+        new_entry->next = current;
+        if (current == NULL) {
             list->tail = new_entry;
-            return new_entry;
+        } else {
+            current->prev = new_entry;
         }
-        cursor = cursor->next;
     }
-
-    return NULL;
+    return new_entry;
 }
+
 
 /*!
  * @brief add_entry_to_tail adds an entry directly to the tail of the list
@@ -87,23 +97,23 @@ files_list_entry_t *add_file_entry(files_list_t *list, const char *file_path) {
  * @return 0 in case of success, -1 else
  */
 int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
-    if (entry == NULL || list == NULL) {
+    if (list == NULL || entry == NULL) {
         return -1;
     }
 
     if (list->head == NULL) {
         list->head = entry;
         list->tail = entry;
-        entry->prev = NULL;
-        entry->next = NULL;
-        return 0;
-    }
+        list->head->next = NULL;
+        list->head->prev = NULL;
 
-    files_list_entry_t *cursor = list->tail;
-    cursor->next = entry;
-    entry->prev = cursor;
-    entry->next = NULL;
-    list->tail = entry;
+    }else {
+        files_list_entry_t *temp = list->tail;
+        list->tail->next = entry;
+        list->tail = entry;
+        list->tail->prev = temp;
+        list->tail->next = NULL;
+    }
     return 0;
 }
 
@@ -116,24 +126,20 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
  *  @param start_of_dest the position of the name of the file in the destination dir (removing the dest path)
  *  @return a pointer to the element found, NULL if none were found.
  */
-files_list_entry_t *find_entry_by_name(files_list_t *list, const char *file_path, size_t start_of_src, size_t start_of_dest) {
+files_list_entry_t *find_entry_by_name(files_list_t *list, char *file_path, size_t start_of_src, size_t start_of_dest) {
     if (list == NULL || file_path == NULL) {
         return NULL;
     }
-
     files_list_entry_t *cursor = list->head;
     while (cursor) {
-        int compare_result = strcmp(cursor->path_and_name + start_of_src, file_path + start_of_dest);
-        if (compare_result == 0) {
+        if (strcmp(cursor->path_and_name, file_path) == 0) {
             return cursor;
         }
-        if (compare_result > 0) {
+        if (strcmp(cursor->path_and_name, file_path) > 0) {
             return NULL;
         }
         cursor = cursor->next;
     }
-
-    return NULL;
 }
 
 /*!
@@ -142,11 +148,10 @@ files_list_entry_t *find_entry_by_name(files_list_t *list, const char *file_path
  * This function is already provided complete.
  */
 void display_files_list(files_list_t *list) {
-    if (!list) {
+    if (!list)
         return;
-    }
 
-    for (files_list_entry_t *cursor = list->head; cursor != NULL; cursor = cursor->next) {
+    for (files_list_entry_t *cursor=list->head; cursor!=NULL; cursor=cursor->next) {
         printf("%s\n", cursor->path_and_name);
     }
 }
@@ -157,11 +162,10 @@ void display_files_list(files_list_t *list) {
  * This function is already provided complete.
  */
 void display_files_list_reversed(files_list_t *list) {
-    if (!list) {
+    if (!list)
         return;
-    }
 
-    for (files_list_entry_t *cursor = list->tail; cursor != NULL; cursor = cursor->prev) {
+    for (files_list_entry_t *cursor=list->tail; cursor!=NULL; cursor=cursor->prev) {
         printf("%s\n", cursor->path_and_name);
     }
 }
