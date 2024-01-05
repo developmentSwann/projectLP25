@@ -143,15 +143,7 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
             return;
         }
 
-        struct stat statbuf;
-        if (fstat(fileSrc, &statbuf) == -1) {
-            printf("Impossible de recuperer les informations du fichier %s\n", source_entry->path_and_name);
-            close(fileSrc);
-            close(fileDst);
-            return;
-        }
-
-        sendfile(fileDst, fileSrc, NULL, statbuf.st_size);
+        sendfile(fileDst, fileSrc, NULL, source_entry->size);
         close(fileSrc);
         close(fileDst);
 
@@ -180,24 +172,26 @@ void make_list(files_list_t *list, char *target) {
     char path[260];
 
     while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
+        if (entry->d_type == DT_REG || entry->d_type == DT_DIR) {
+            if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
 
-            strcpy(path, target);
-            strcat(path, "/");
-            strcat(path, entry->d_name);
+                strcpy(path, target);
+                strcat(path, "/");
+                strcat(path, entry->d_name);
 
-            struct stat statbuf;
-            if (stat(path, &statbuf) == -1) {
-                continue;
-            }
+                struct stat statbuf;
+                if (stat(path, &statbuf) == -1) {
+                    continue;
+                }
 
-            files_list_entry_t *entry_to_add = add_file_entry(list, path);
-            if (!entry_to_add) {
-                continue;
-            }
+                files_list_entry_t *entry_to_add = add_file_entry(list, path);
+                if (!entry_to_add) {
+                    continue;
+                }
 
-            if (S_ISDIR(statbuf.st_mode)) {
-                make_list(list, path);
+                if (S_ISDIR(statbuf.st_mode)) {
+                    make_list(list, path);
+                }
             }
         }
     }
