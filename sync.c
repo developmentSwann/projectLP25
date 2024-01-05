@@ -27,17 +27,17 @@
  * @param p_context is a pointer to the processes context
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
-    files_list_t *src_list = malloc(sizeof(files_list_t));
-    files_list_t *dst_list = malloc(sizeof(files_list_t));
-    files_list_t *diff_list = malloc(sizeof(files_list_t));
+    files_list_t *src_list;
+    files_list_t *dst_list;
+    files_list_t *diff_list;
 
     if (the_config->is_parallel) {
-        //TODO : Parallel
+        make_files_lists_parallel(src_list, dst_list, the_config, p_context->message_queue_id);
     } else {
-        printf("Test3");
-
-        make_files_list(src_list, the_config->source);
-        make_files_list(dst_list, the_config->destination);
+        char *src_path = the_config->source;
+        char *dst_path = the_config->destination;
+        make_files_list(src_list, src_path);
+        make_files_list(dst_list, dst_path);
     }
     printf("Liste source :\n");
     display_files_list(src_list);
@@ -64,7 +64,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         diff_cursor = diff_cursor->next;
     }
 
-    return;
+
 }
 
 /*!
