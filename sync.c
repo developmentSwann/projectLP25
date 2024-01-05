@@ -15,9 +15,7 @@
 #include <sys/msg.h>
 #include <dirent.h>
 #include <errno.h>
-#include <processes.h>
-#include <messages.h>
-#include <files-list.h>
+
 
 
 
@@ -29,20 +27,17 @@
  * @param p_context is a pointer to the processes context
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
-    files_list_t *src_list;
-    files_list_t *dst_list;
-    files_list_t *diff_list;
+    files_list_t *src_list = malloc(sizeof(files_list_t));
+    files_list_t *dst_list = malloc(sizeof(files_list_t));
+    files_list_t *diff_list = malloc(sizeof(files_list_t));
 
     if (the_config->is_parallel) {
-        //Si on est en mode parallele
-        // Créer les listes de fichiers en parallèle
-        make_files_lists_parallel(src_list, dst_list, the_config, p_context->message_queue_id);
-
+        //TODO : Parallel
     } else {
-        char *src_path = the_config->source;
-        char *dst_path = the_config->destination;
-        make_files_list(src_list, src_path);
-        make_files_list(dst_list, dst_path);
+        printf("Test3");
+
+        make_files_list(src_list, the_config->source);
+        make_files_list(dst_list, the_config->destination);
     }
     printf("Liste source :\n");
     display_files_list(src_list);
@@ -69,7 +64,7 @@ void synchronize(configuration_t *the_config, process_context_t *p_context) {
         diff_cursor = diff_cursor->next;
     }
 
-
+    return;
 }
 
 /*!
@@ -92,7 +87,7 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
     if (lhd->mtime.tv_sec != rhd->mtime.tv_sec) {
         return true;
     }
-    if (has_md5  && memcmp(lhd->md5sum, rhd->md5sum, sizeof(lhd->md5sum)) != 0) {
+    if (has_md5  && strcmp(lhd->md5sum, rhd->md5sum) != 0) {
         return true;
     }
     return false;
@@ -116,16 +111,7 @@ void  make_files_list(files_list_t *list, char *target_path) {
  * @param msg_queue is the id of the MQ used for communication
  */
 void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, configuration_t *the_config, int msg_queue) {
-    // Initialisation des processus
-    process_context_t p_context;
-    prepare(the_config, &p_context);
 
-    // Création des processus pour répertoire source & destination
-    make_process(&p_context, lister_process_loop, src_list);
-    make_process(&p_context, lister_process_loop, dst_list);
-
-
-    clean_processes(the_config, &p_context);
 }
 
 /*!
@@ -158,9 +144,15 @@ void copy_entry_to_destination(files_list_entry_t *source_entry, configuration_t
             return;
         }
 
+        struct stat statbuf;
+        if (fstat(fileSrc, &statbuf) == -1) {
+            printf("Impossible de recuperer les informations du fichier %s\n", source_entry->path_and_name);
+            close(fileSrc);
+            close(fileDst);
+            return;
+        }
 
-
-        sendfile(fileDst, fileSrc, NULL, source_entry->size);
+        sendfile(fileDst, fileSrc, NULL, statbuf.st_size);
         close(fileSrc);
         close(fileDst);
 
@@ -186,27 +178,27 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry;
-    char *path[260];
+    char path[260];
 
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
 
-            strcpy(*path, target);
-            strcat(*path, "/");
-            strcat(*path, entry->d_name);
+            strcpy(path, target);
+            strcat(path, "/");
+            strcat(path, entry->d_name);
 
             struct stat statbuf;
-            if (stat(*path, &statbuf) == -1) {
+            if (stat(path, &statbuf) == -1) {
                 continue;
             }
 
-            files_list_entry_t *entry_to_add = add_file_entry(list, *path);
+            files_list_entry_t *entry_to_add = add_file_entry(list, path);
             if (!entry_to_add) {
                 continue;
             }
 
             if (S_ISDIR(statbuf.st_mode)) {
-                make_list(list, *path);
+                make_list(list, path);
             }
         }
     }

@@ -105,7 +105,6 @@ int set_configuration(configuration_t *the_config, int argc, char *argv[]){
     strcpy(the_config->source, argv[optind]);
     strcpy(the_config->destination, argv[optind+1]);
 
-
     return 0;
 
 }
