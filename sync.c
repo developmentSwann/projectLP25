@@ -27,13 +27,9 @@
  * @param p_context is a pointer to the processes context
  */
 void synchronize(configuration_t *the_config, process_context_t *p_context) {
-    static files_list_t *src_list;
-    static files_list_t *dst_list;
-    static files_list_t *diff_list;
-
-    clear_files_list(src_list);
-    clear_files_list(dst_list);
-    clear_files_list(diff_list);
+    files_list_t *src_list = malloc(sizeof(files_list_t));
+    files_list_t *dst_list = malloc(sizeof(files_list_t));
+    files_list_t *diff_list = malloc(sizeof(files_list_t));
 
 
     if (the_config->is_parallel) {
