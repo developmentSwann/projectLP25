@@ -86,7 +86,7 @@ bool mismatch(files_list_entry_t *lhd, files_list_entry_t *rhd, bool has_md5) {
     if (lhd->mtime.tv_sec != rhd->mtime.tv_sec) {
         return true;
     }
-    if (has_md5  && strcmp(lhd->md5sum, rhd->md5sum) != 0) {
+    if (has_md5  && memcmp(lhd->md5sum, rhd->md5sum, sizeof(lhd->md5sum)) != 0) {
         return true;
     }
     return false;
