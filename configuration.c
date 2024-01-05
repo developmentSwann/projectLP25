@@ -51,18 +51,7 @@ int set_configuration(configuration_t *the_config, int argc, char *argv[]){
         printf("Il manque des arguments\n");
         return -1;
     }
-    //Check si la taille des chemins est pas trop grande
-    if(strlen(argv[1]) > STR_MAX || strlen(argv[2]) > STR_MAX){
-        printf("Les chemins sont trop longs\n");
-        return -1;
-    }
-    //Check si les chemins sont pas les mêmes
-    if(strcmp(argv[1], argv[2]) == 0){
-        printf("Les chemins sont les mêmes\n");
-        return -1;
-    }
-    strcpy(the_config->source, argv[1]);
-    strcpy(the_config->destination, argv[2]);
+
 
     int opt;
 
@@ -102,6 +91,20 @@ int set_configuration(configuration_t *the_config, int argc, char *argv[]){
 
         }
     }
+    //Paramètre restants : source et destination
+    //    //Check si la taille des chemins est pas trop grande
+    if(strlen(argv[optind]) > STR_MAX || strlen(argv[optind+1]) > STR_MAX){
+        printf("Les chemins sont trop longs\n");
+        return -1;
+    }
+    //Check si les chemins sont pas les mêmes
+    if(strcmp(argv[optind], argv[optind+1]) == 0){
+        printf("Les chemins sont les mêmes\n");
+        return -1;
+    }
+    strcpy(the_config->source, argv[optind]);
+    strcpy(the_config->destination, argv[optind+1]);
+
 
     return 0;
 
