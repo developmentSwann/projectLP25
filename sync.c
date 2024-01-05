@@ -110,7 +110,15 @@ void  make_files_list(files_list_t *list, char *target_path) {
  * @param msg_queue is the id of the MQ used for communication
  */
 void make_files_lists_parallel(files_list_t *src_list, files_list_t *dst_list, configuration_t *the_config, int msg_queue) {
+    process_context_t p_context;
+    prepare(the_config, &p_context);
 
+    // Création des processus pour répertoire source & destination
+    make_process(&p_context, lister_process_loop, src_list);
+    make_process(&p_context, lister_process_loop, dst_list);
+
+
+    clean_processes(the_config, &p_context);
 }
 
 /*!
@@ -220,6 +228,7 @@ DIR *open_dir(char *path) {
  * Relevant entries are all regular files and dir, except . and ..
  */
 struct dirent *get_next_entry(DIR *dir) {
+
     struct dirent *entry = readdir(dir);
     return entry;
 }
