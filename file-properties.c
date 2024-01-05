@@ -41,6 +41,8 @@ int get_file_stats(files_list_entry_t *entry) {
         entry->entry_type = DOSSIER;
     } else {
         entry->mtime.tv_sec = fileStat.st_mtime;
+        entry->mtime.tv_nsec = fileStat.st_mtime;
+
         entry->size = fileStat.st_size;
         entry->entry_type = FICHIER;
         if (compute_file_md5(entry) < 0) {
@@ -99,7 +101,7 @@ int compute_file_md5(files_list_entry_t *entry) {
         sprintf(&mdString[i*2], "%02x", (unsigned int)digest[i]);
     }
 
-    strcpy(entry->md5sum, mdString);
+    memccpy(entry->md5sum, mdString, 0, 33)
 
     EVP_MD_CTX_free(mdctx);
     fclose(inFile);
@@ -129,9 +131,9 @@ bool directory_exists(char *path_to_dir) {
  */
 bool is_directory_writable(char *path_to_dir) {
     char *test_file = "/test.txt";
-    char *path = malloc(strlen(path_to_dir) + strlen(test_file) + 1);
-    strcpy(path, path_to_dir);
-    strcat(path, test_file);
+    char path[PATH_SIZE];
+
+    snprintf(path, PATH_SIZE, "%s%s", path_to_dir, test_file);
     int fd = open(path, O_WRONLY | O_CREAT, 0666);
     if (fd < 0) {
         return false;
