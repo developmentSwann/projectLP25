@@ -130,15 +130,22 @@ bool directory_exists(char *path_to_dir) {
  * Hint: try to open a file in write mode in the target directory.
  */
 bool is_directory_writable(char *path_to_dir) {
-    char *test_file = "/test.txt";
-    char path[PATH_SIZE];
+    if (path_to_dir == NULL) {
+        return false;
+    }
 
+    char *test_file = "/test.txt";
+    if (strlen(path_to_dir) + strlen(test_file) >= PATH_SIZE) {
+        return false;
+    }
+
+    char path[PATH_SIZE];
     snprintf(path, PATH_SIZE, "%s%s", path_to_dir, test_file);
+
     int fd = open(path, O_WRONLY | O_CREAT, 0666);
     if (fd < 0) {
         return false;
     }
-    printf("fd: %d\n", fd);
     close(fd);
     unlink(path);
     return true;
