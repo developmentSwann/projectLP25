@@ -78,11 +78,11 @@ int set_configuration(configuration_t *the_config, int argc, char *argv[]){
                 break;
 
             case 't':
-                the_config->uses_md5 = false;
+                the_config->uses_md5 = true;
                 break;
 
             case 'p':
-                the_config->is_parallel = false;
+                the_config->is_parallel = true;
                 break;
             case 'd':
                 the_config->is_dry_run = true;

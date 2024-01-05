@@ -177,29 +177,27 @@ void make_list(files_list_t *list, char *target) {
     }
 
     struct dirent *entry;
-    char path[260];
+    char *path[260];
 
     while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG || entry->d_type == DT_DIR) {
-            if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
+        if (strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
 
-                strcpy(path, target);
-                strcat(path, "/");
-                strcat(path, entry->d_name);
+            strcpy(*path, target);
+            strcat(*path, "/");
+            strcat(*path, entry->d_name);
 
-                struct stat statbuf;
-                if (stat(path, &statbuf) == -1) {
-                    continue;
-                }
+            struct stat statbuf;
+            if (stat(*path, &statbuf) == -1) {
+                continue;
+            }
 
-                files_list_entry_t *entry_to_add = add_file_entry(list, path);
-                if (!entry_to_add) {
-                    continue;
-                }
+            files_list_entry_t *entry_to_add = add_file_entry(list, *path);
+            if (!entry_to_add) {
+                continue;
+            }
 
-                if (S_ISDIR(statbuf.st_mode)) {
-                    make_list(list, path);
-                }
+            if (S_ISDIR(statbuf.st_mode)) {
+                make_list(list, *path);
             }
         }
     }
