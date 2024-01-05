@@ -101,22 +101,24 @@ int add_entry_to_tail(files_list_t *list, files_list_entry_t *entry) {
     if (list == NULL || entry == NULL) {
         return -1;
     }
-    if (list->head == NULL) {
-        list->head = entry;
-        list->tail = entry;
-        list->head->next = NULL;
-        list->head->prev = NULL;
+    files_list_entry_t *new_entry = malloc(sizeof(files_list_entry_t));
+    if (new_entry == NULL) {
+        return -1;
+    }
+    memcpy(new_entry, entry, sizeof(files_list_entry_t));
 
-    }else {
+    if (list->head == NULL) {
+        list->head = new_entry;
+        list->tail = new_entry;
+        list->head->prev = NULL;
+        list->head->next = NULL;
+    } else {
         files_list_entry_t *temp = list->tail;
-        list->tail->next = entry;
-        list->tail = entry;
+        list->tail->next = new_entry;
+        list->tail = new_entry;
         list->tail->prev = temp;
         list->tail->next = NULL;
     }
-
-
-
 
     return 0;
 }
