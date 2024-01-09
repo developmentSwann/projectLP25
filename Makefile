@@ -16,3 +16,4 @@ lp25-backup: main.c files-list.o sync.o configuration.o file-properties.o proces
 
 clean:
 	rm -f *.o lp25-backup
+cdc
